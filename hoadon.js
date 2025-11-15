@@ -554,8 +554,6 @@ function showFileResults(results) {
 }
 
 
-
-// Module quản lý hóa đơn (Bao gồm logic tab Trích Xuất HĐ)
 function initInvoiceModule() {
     // ------------------------------------
     // 1. Logic cho tab Trích Xuất HĐ
@@ -597,6 +595,7 @@ function initInvoiceModule() {
             }
         });
     }
+
 
     // ------------------------------------
     // 2. Logic tìm kiếm hóa đơn
