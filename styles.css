@@ -37,11 +37,21 @@ html, body {
     overflow-x: hidden;
 }
 
-/* Ngăn chặn thu phóng trên mobile */
+/* NGĂN CHẶN THU PHÓNG TRÊN MOBILE - QUAN TRỌNG */
 body {
     touch-action: pan-x pan-y;
     -webkit-text-size-adjust: 100%;
     -ms-text-size-adjust: 100%;
+    -webkit-user-scalable: no;
+    user-scalable: no;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+/* Ngăn chặn thu phóng trên tất cả các phần tử */
+* {
+    -webkit-user-scalable: no;
+    user-scalable: no;
 }
 
 /* ======================================================= */
@@ -138,6 +148,7 @@ body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    position: relative;
 }
 
 .header {
@@ -145,6 +156,7 @@ body {
     box-shadow: var(--shadow);
     height: var(--header-height);
     z-index: 99;
+    position: relative;
 }
 
 .header-content {
@@ -177,6 +189,12 @@ body {
     overflow-x: auto;
     white-space: nowrap;
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+}
+
+.nav-tabs::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
 }
 
 .nav-tab {
@@ -190,6 +208,7 @@ body {
     transition: var(--transition);
     font-weight: 500;
     min-width: 150px;
+    flex-shrink: 0;
 }
 
 .nav-tab:hover {
@@ -211,6 +230,7 @@ body {
     overflow-y: auto;
     padding: 20px;
     display: none;
+    position: relative;
 }
 
 .tab-content.active {
@@ -236,6 +256,7 @@ body {
     box-shadow: var(--shadow);
     margin-bottom: 20px;
     overflow: hidden;
+    position: relative;
 }
 
 .card-header {
@@ -275,6 +296,7 @@ body {
     border-radius: 4px;
     font-size: 14px;
     transition: var(--transition);
+    max-width: 100%;
 }
 
 .form-group input:focus, 
@@ -304,6 +326,7 @@ body {
     transition: var(--transition);
     display: inline-block;
     text-align: center;
+    touch-action: manipulation;
 }
 
 .btn-primary {
@@ -343,17 +366,26 @@ body {
 }
 
 /* ======================================================= */
-/* BẢNG */
+/* BẢNG - CHO PHÉP CUỘN NGANG */
 /* ======================================================= */
+.table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    position: relative;
+}
+
 .table {
     width: 100%;
     border-collapse: collapse;
+    min-width: 800px; /* Đảm bảo bảng đủ rộng */
 }
 
 .table th, .table td {
     padding: 12px 15px;
     text-align: left;
     border-bottom: 1px solid #eee;
+    white-space: nowrap;
 }
 
 .table th {
@@ -473,6 +505,8 @@ body {
     flex-wrap: wrap;
     gap: 10px;
     margin-bottom: 20px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .accounting-tab-btn {
@@ -486,6 +520,7 @@ body {
     display: flex;
     align-items: center;
     gap: 5px;
+    flex-shrink: 0;
 }
 
 .accounting-tab-btn:hover {
@@ -525,6 +560,8 @@ body {
     gap: 10px;
     margin-bottom: 15px;
     flex-wrap: wrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .stock-filter-btn {
@@ -535,6 +572,7 @@ body {
     cursor: pointer;
     transition: var(--transition);
     font-size: 14px;
+    flex-shrink: 0;
 }
 
 .stock-filter-btn:hover {
@@ -572,11 +610,13 @@ body {
         overflow-x: hidden;
         width: 100%;
         position: relative;
+        touch-action: pan-x pan-y;
     }
     
     /* Layout mobile - sidebar ẩn mặc định */
     body {
         flex-direction: column;
+        overflow: hidden;
     }
     
     .sidebar {
@@ -588,11 +628,11 @@ body {
         transform: translateX(-100%);
         z-index: 1000;
         transition: transform 0.3s ease;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
     }
     
-    .sidebar.open {
+    .sidebar.mobile-open {
         transform: translateX(0);
-        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
     }
     
     /* Overlay khi sidebar mở */
@@ -605,9 +645,10 @@ body {
         background-color: rgba(0, 0, 0, 0.5);
         z-index: 999;
         display: none;
+        touch-action: none;
     }
     
-    .sidebar-overlay.open {
+    .sidebar-overlay.mobile-open {
         display: block;
     }
     
@@ -627,6 +668,8 @@ body {
         z-index: 1001;
         box-shadow: var(--shadow);
         cursor: pointer;
+        border: none;
+        font-size: 18px;
     }
     
     /* Header mobile */
@@ -666,6 +709,9 @@ body {
     /* Nội dung tab */
     .tab-content {
         padding: 15px;
+        overflow-x: hidden;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
     }
     
     .content-header h2 {
@@ -675,6 +721,7 @@ body {
     /* Card và form trên mobile */
     .card {
         margin-bottom: 15px;
+        overflow: visible;
     }
     
     .card-header {
@@ -683,6 +730,7 @@ body {
     
     .card-body {
         padding: 15px;
+        overflow-x: auto;
     }
     
     .form-grid {
@@ -693,10 +741,13 @@ body {
     .table-container {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
+        margin: 0 -15px;
+        padding: 0 15px;
+        width: calc(100% + 30px);
     }
     
     .table {
-        min-width: 800px; /* Đảm bảo bảng đủ rộng để hiển thị đầy đủ */
+        min-width: 800px;
     }
     
     .table th, .table td {
@@ -722,6 +773,7 @@ body {
     /* Tabs kế toán trên mobile */
     .accounting-tabs {
         gap: 5px;
+        padding-bottom: 5px;
     }
     
     .accounting-tab-btn {
@@ -736,6 +788,7 @@ body {
     .modal-content {
         width: 95%;
         max-width: 95%;
+        margin: 20px;
     }
     
     .modal-header {
@@ -749,6 +802,7 @@ body {
     /* Lọc tồn kho trên mobile */
     .stock-filter-buttons {
         gap: 5px;
+        padding-bottom: 5px;
     }
     
     .stock-filter-btn {
@@ -756,6 +810,16 @@ body {
         font-size: 12px;
         flex: 1;
         text-align: center;
+    }
+    
+    /* Main content với hiệu ứng vuốt */
+    .main-content {
+        transition: transform 0.3s ease;
+        transform: translateX(0);
+    }
+    
+    .main-content.sidebar-open {
+        transform: translateX(var(--sidebar-width-mobile));
     }
 }
 
@@ -783,30 +847,30 @@ body {
         font-size: 13px;
         width: 100%;
     }
+    
+    .table th, .table td {
+        padding: 6px 8px;
+        font-size: 12px;
+    }
 }
 
 /* ======================================================= */
 /* HỖ TRỢ CẢM ỨNG VÀ THAO TÁC VUỐT */
 /* ======================================================= */
 @media (max-width: 768px) {
-    /* Kích hoạt sidebar bằng thao tác vuốt */
-    .main-content {
-        position: relative;
-        transition: transform 0.3s ease;
-    }
-    
-    .main-content.sidebar-open {
-        transform: translateX(var(--sidebar-width-mobile));
-    }
-    
     /* Tối ưu cho thao tác cảm ứng */
-    button, .nav-tab, .company-item, .accounting-tab-btn {
+    button, .nav-tab, .company-item, .accounting-tab-btn, .stock-filter-btn {
         -webkit-tap-highlight-color: transparent;
         touch-action: manipulation;
     }
     
     /* Cải thiện khả năng cuộn */
-    .company-list, .tab-content, .modal-content {
+    .company-list, .tab-content, .modal-content, .table-container {
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Touch improvements */
+    .sidebar {
         -webkit-overflow-scrolling: touch;
     }
 }
@@ -831,4 +895,13 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: #a8a8a8;
+}
+
+/* Ẩn thanh cuộn trên mobile cho các phần tử cụ thể */
+@media (max-width: 768px) {
+    .nav-tabs::-webkit-scrollbar,
+    .accounting-tabs::-webkit-scrollbar,
+    .stock-filter-buttons::-webkit-scrollbar {
+        display: none;
+    }
 }
