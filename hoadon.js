@@ -554,47 +554,6 @@ function showFileResults(results) {
 }
 
 
-function initInvoiceModule() {
-    // ------------------------------------
-    // 1. Logic cho tab Trích Xuất HĐ
-    // ------------------------------------
-    const processButton = document.getElementById('process-files');
-    if (processButton) {
-        processButton.addEventListener('click', async function() {
-            const fileInput = document.getElementById('zip-file-input');
-            const files = fileInput.files;
-            
-            if (files.length === 0) {
-                alert('Vui lòng chọn file ZIP hoặc XML.');
-                return;
-            }
-
-            // Reset UI
-            updateFileStats(files.length, 0, 0, 0);
-            document.getElementById('file-results-list').innerHTML = '';
-            
-            // Xử lý file (sử dụng hàm từ zip-trichxuat.js)
-            await window.handleZipFiles(files); 
-            
-            // Cập nhật giao diện sau khi xử lý
-            window.renderCompanyList(); 
-            const companies = Object.keys(window.hkdData);
-            
-            // Nếu chưa chọn công ty và có dữ liệu mới, chọn công ty đầu tiên
-            if (companies.length > 0 && !window.currentCompany) {
-                window.selectCompany(companies[0]);
-            }
-            
-            // Cập nhật thống kê
-            if (window.currentCompany) {
-                renderInvoices();
-                updateInvoiceStats();
-                if (typeof window.updateAccountingStats === 'function') {
-                    window.updateAccountingStats();
-                }
-            }
-        });
-    }
 
 
     // ------------------------------------
@@ -924,12 +883,58 @@ function deleteInvoice(id) {
         alert('Không tìm thấy hóa đơn để xóa.');
     }
 }
-// =======================
-// HÀM LỌC VÀ HIỂN THỊ HÓA ĐƠN MUA HÀNG NÂNG CAO (ĐÃ SỬA LỖI)
-// =======================
+function initInvoiceModule() {
+    // ------------------------------------
+    // 1. Logic cho tab Trích Xuất HĐ - ĐÃ SỬA LOẠI BỎ KIỂM TRA CÔNG TY
+    // ------------------------------------
+    const processButton = document.getElementById('process-files');
+    if (processButton) {
+        processButton.addEventListener('click', async function() {
+            const fileInput = document.getElementById('zip-file-input');
+            const files = fileInput.files;
+            
+            if (files.length === 0) {
+                alert('Vui lòng chọn file ZIP hoặc XML.');
+                return;
+            }
 
+            // Reset UI
+            updateFileStats(files.length, 0, 0, 0);
+            document.getElementById('file-results-list').innerHTML = '';
+            
+            // 🚨 LOẠI BỎ KIỂM TRA CÔNG TY - XỬ LÝ LUÔN
+            await window.handleZipFiles(files); 
+            
+            // Cập nhật giao diện sau khi xử lý
+            window.renderCompanyList(); 
+            const companies = Object.keys(window.hkdData);
+            
+            // Nếu chưa chọn công ty và có dữ liệu mới, chọn công ty đầu tiên
+            if (companies.length > 0 && !window.currentCompany) {
+                window.selectCompany(companies[0]);
+            }
+            
+            // Cập nhật thống kê
+            if (window.currentCompany) {
+                renderInvoices();
+                updateInvoiceStats();
+                if (typeof window.updateAccountingStats === 'function') {
+                    window.updateAccountingStats();
+                }
+            }
+        });
+    }
 
-
+    // ------------------------------------
+    // 2. Logic tìm kiếm hóa đơn (giữ nguyên)
+    // ------------------------------------
+    const searchInput = document.getElementById('search-invoice');
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            renderInvoices(e.target.value);
+        });
+    }
+}
 
 // =======================
 // HÀM LỌC HÓA ĐƠN CHÍNH
@@ -3657,4 +3662,5 @@ window.calculateSupplierDebt = calculateSupplierDebt;
 window.renderFilteredPayableList = renderFilteredPayableList;
 window.updatePayableFilterStats = updatePayableFilterStats;
 window.resetPurchaseFilter = resetPurchaseFilter;
+
 window.resetPayableFilter = resetPayableFilter;
