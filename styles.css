@@ -2,8 +2,8 @@
 /* BIẾN VÀ THIẾT LẬP CƠ BẢN */
 /* ======================================================= */
 :root {
-    --primary: #3498db;
-    --primary-dark: #2980b9;
+    --primary: #53908d;
+    --primary-dark: #000509;
     --secondary: #2c3e50;
     --success: #27ae60;
     --warning: #f39c12;
@@ -38,20 +38,23 @@ html, body {
 }
 
 /* NGĂN CHẶN THU PHÓNG TRÊN MOBILE */
-body {
-    touch-action: pan-x pan-y;
+html {
     -webkit-text-size-adjust: 100%;
     -ms-text-size-adjust: 100%;
-    -webkit-user-scalable: no;
-    user-scalable: no;
-    max-width: 100%;
-    overflow-x: hidden;
+    touch-action: manipulation;
 }
 
-/* Ngăn chặn thu phóng trên tất cả các phần tử */
-* {
-    -webkit-user-scalable: no;
-    user-scalable: no;
+body {
+    max-width: 100%;
+    overflow-x: hidden;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* Cho phép chọn văn bản trong input, textarea */
+input, textarea, [contenteditable] {
+    -webkit-user-select: text;
+    user-select: text;
 }
 
 /* ======================================================= */
@@ -97,13 +100,13 @@ body {
 
 .company-item {
     padding: 15px 20px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid #926868;
     cursor: pointer;
     transition: var(--transition);
 }
 
 .company-item:hover {
-    background-color: #f8f9fa;
+    background-color: #dddddd;
 }
 
 .company-item.active {
@@ -123,21 +126,29 @@ body {
 }
 
 .company-item.active .company-mst {
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(21, 19, 19, 0.8);
 }
 
 .company-info small {
     font-size: 11px;
     color: var(--gray);
+    background: linear-gradient(135deg, #513454 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 8px;
+    display: inline-block;
 }
 
 .company-item.active .company-info small {
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(13, 13, 13, 0.8);
 }
 
 .sidebar-footer {
     padding: 20px;
-    border-top: 1px solid #eee;
+    border-top: 1px solid #470a6f;
 }
 
 /* ======================================================= */
@@ -742,4 +753,438 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: #a8a8a8;
+}
+
+@media (max-width: 768px) {
+    .mobile-menu-toggle {
+        display: block !important;
+    }
+    
+    .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        z-index: 999;
+    }
+    
+    .sidebar.mobile-open {
+        transform: translateX(0);
+    }
+}
+
+/* NÚT NHỎ GỌN CÙNG DÒNG VỚI MST */
+.company-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+    gap: 8px;
+}
+
+.company-name {
+    flex: 1;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.company-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.company-item:hover .company-actions {
+    opacity: 1;
+}
+
+/* NÚT NHỎ - ICON NHỎ */
+.btn-note, .btn-tag {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 4px !important;
+    border-radius: 3px;
+    font-size: 10px !important;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.btn-note:hover { 
+    background: #e3f2fd !important; 
+    transform: scale(1.2);
+}
+
+.btn-tag:hover { 
+    background: #f3e5f5 !important; 
+    transform: scale(1.2);
+}
+
+/* HIỂN THỊ GHÍ CHÚ KHI HOVER */
+.company-item {
+    position: relative;
+}
+
+.company-tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 5px;
+    padding: 8px;
+    font-size: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    z-index: 1000;
+    display: none;
+}
+
+.company-item:hover .company-tooltip {
+    display: block;
+}
+
+/* META INFO NHỎ GỌN */
+.company-meta {
+    margin-top: 5px;
+    padding-top: 5px;
+    border-top: 1px solid #f0f0f0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    font-size: 10px;
+}
+
+.meta-note, .meta-reminder, .meta-tag {
+    background: #e3f2fd;
+    padding: 1px 4px;
+    border-radius: 8px;
+    color: #9aa1a9;
+}
+
+.meta-reminder {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.meta-tag {
+    background: #f3e5f5;
+    color: #7b1fa2;
+}
+
+/* CẢNH BÁO NHẮC NHỞ */
+.reminder-alert {
+    background: #ffebee !important;
+    border-left: 3px solid #f44336 !important;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.8; }
+    100% { opacity: 1; }
+}
+/* HIỆU ỨNG CẢNH BÁO */
+.reminder-alert {
+    background: linear-gradient(45deg, #ffebee 25%, #ffffff 25%, #ffffff 50%, #ffebee 50%, #ffebee 75%, #ffffff 75%, #ffffff) !important;
+    background-size: 20px 20px !important;
+    border-left: 4px solid #f44336 !important;
+    animation: alertPulse 2s infinite, alertShake 0.5s infinite, backgroundMove 1s infinite;
+}
+
+.reminder-urgent {
+    background: #fff3cd !important;
+    border-left: 4px solid #ffc107 !important;
+    animation: alertPulse 3s infinite;
+}
+
+.reminder-warning {
+    background: #e3f2fd !important;
+    border-left: 4px solid #2196f3 !important;
+}
+
+/* HIỆU ỨNG RUNG */
+@keyframes alertShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+}
+
+/* HIỆU ỨNG PULSE */
+@keyframes alertPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+}
+
+/* HIỆU ỨNG CHUYỂN ĐỘNG NỀN */
+@keyframes backgroundMove {
+    0% { background-position: 0 0; }
+    100% { background-position: 20px 20px; }
+}
+
+/* ICON CẢNH BÁO */
+.alert-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: bold;
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0.3; }
+}
+
+/* BADGE CẢNH BÁO */
+.alert-badge {
+    background: #f44336;
+    color: white;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    animation: pulseBadge 2s infinite;
+}
+
+@keyframes pulseBadge {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+}
+
+/* CẢNH BÁO ĐƠN GIẢN - CHỈ VIỀN TƯƠNG PHẢN */
+.reminder-urgent {
+    border: 2px solid #f44336 !important;
+    background: #fff !important;
+}
+
+.reminder-warning {
+    border: 2px solid #ff9800 !important;
+    background: #fff !important;
+}
+
+.reminder-normal {
+    border: 1px solid #4caf50 !important;
+    background: #fff !important;
+}
+
+
+
+.company-item:hover .company-actions {
+    opacity: 1;
+}
+
+
+.meta-note {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.meta-reminder {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.meta-tag {
+    background: #f3e5f5;
+    color: #9d94a0;
+}
+
+/* Smart notification compact icon + popup */
+.smart-notification--icon {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    width: 40px;
+    height: 40px;
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 11000;
+    transition: box-shadow .18s ease, transform .12s ease;
+    margin: 6px;
+}
+.smart-notification--icon:hover {
+    box-shadow: 0 6px 16px rgba(0,0,0,0.18);
+    transform: translateY(-2px);
+}
+/* popup content inside the icon container */
+.smart-notification .sn-popup {
+    position: absolute;
+    right: 48px;
+    top: 0;
+    width: 320px;
+    background: #fff;
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    border: 1px solid #eee;
+    display: none;
+}
+
+/* Tag chips */
+.tag-chip {
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    background:#e9f5ff;
+    color:#054a91;
+    padding:4px 8px;
+    border-radius:12px;
+    margin:2px;
+    font-size:13px;
+}
+.tag-chip.small { font-size:12px; padding:3px 6px; background:#f1f1f1; color:#333; }
+
+/* notes list and filter bar */
+.notes-filter-bar {
+    display:flex;
+    gap:8px;
+    align-items:center;
+    margin-bottom:8px;
+}
+.notes-filter-bar input.notes-filter-input {
+    flex:1;
+    padding:6px 8px;
+    border-radius:6px;
+    border:1px solid #ddd;
+}
+.notes-filter-bar select {
+    padding:6px 8px;
+    border-radius:6px;
+    border:1px solid #ddd;
+}
+
+/* note item */
+.note-item {
+    padding:10px;
+    border-bottom:1px solid #f0f0f0;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:12px;
+}
+.note-item:hover { background:#fbfdff; }
+.note-item .note-actions button { margin-left:6px; }
+
+/* expanded content */
+.note-content { padding:8px 0; color:#333 }
+
+/* small icon buttons */
+.btn-icon { background:none;border:none;cursor:pointer;padding:4px;font-size:14px }/* ...existing code... */
+
+/* Smooth UI interactions */
+html, body {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Reduce tap highlight on mobile */
+* { -webkit-tap-highlight-color: transparent; }
+
+/* Buttons and icon transitions */
+.btn-icon, .btn-primary, .btn-secondary, .btn-small {
+    transition: transform .12s ease, box-shadow .12s ease, background-color .12s ease, opacity .12s ease;
+    will-change: transform, opacity;
+}
+.btn-icon:active, .btn-primary:active, .btn-secondary:active { transform: translateY(1px) scale(.997); }
+
+/* Smart notification icon + popup */
+.smart-notification--icon {
+    transition: transform .16s cubic-bezier(.2,.9,.2,1), box-shadow .16s ease, opacity .16s ease;
+    will-change: transform, opacity;
+    transform: translateZ(0);
+}
+.smart-notification--icon .sn-popup {
+    pointer-events: auto;
+    opacity: 0;
+    transform: translateY(-6px) scale(.995);
+    transition: opacity .18s ease, transform .18s ease;
+    visibility: hidden;
+}
+.smart-notification--icon:hover .sn-popup,
+.smart-notification--icon .sn-popup[style*="display: block"] {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    visibility: visible;
+}
+
+/* Toast / inline alerts */
+#inline-alerts { display:flex; flex-direction:column; align-items:flex-end; gap:8px; }
+.inline-alert {
+    transition: transform .16s ease, opacity .18s ease;
+    transform-origin: right top;
+}
+.inline-alert:hover { transform: translateY(-2px); }
+
+/* Note list / expand animation */
+.note-item {
+    transition: background .18s ease, box-shadow .18s ease;
+    will-change: background;
+}
+.note-item .note-content {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-height .28s ease, opacity .18s ease, padding .18s ease;
+}
+.note-item.expanded .note-content {
+    max-height: 800px; /* enough for most notes */
+    opacity: 1;
+    padding-top: 8px;
+}
+
+/* Tag chip smoothness */
+.tag-chip {
+    transition: background .14s ease, transform .12s ease, opacity .12s ease;
+    will-change: transform, opacity;
+}
+.tag-chip:hover { transform: translateY(-2px); }
+
+/* Modal open/close animations (if modal content uses .modal-dialog/.modal-content) */
+#custom-modal {
+    transition: opacity .18s ease;
+    opacity: 1;
+}
+#custom-modal .modal-dialog, #custom-modal .modal-content {
+    transform: translateY(-6px) scale(.995);
+    transition: transform .18s cubic-bezier(.2,.9,.2,1), opacity .18s ease;
+}
+#custom-modal.show .modal-dialog, #custom-modal.show .modal-content {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+}
+
+/* subtle focus styles for keyboard users */
+:focus { outline: none; }
+:focus-visible { outline: 3px solid rgba(21,156,228,0.24); outline-offset: 2px; border-radius: 6px; }
+
+/* improve perceived performance on transforms */
+* { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+
+/* Accessibility: respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+    html, body, * { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+}
+/* subtle focus styles for keyboard users */
+:focus { outline: none; }
+:focus-visible { outline: 3px solid rgba(21,156,228,0.24); outline-offset: 2px; border-radius: 6px; }
+
+/* improve perceived performance on transforms */
+* { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+
+/* Accessibility: respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+    html, body, * { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
 }

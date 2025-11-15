@@ -174,74 +174,6 @@ function updateCompanyTags(taxCode) {
     saveData();
 }
 
-function showQuickNoteModal(taxCode) {
-    console.log('🎪 OPENING NOTE MODAL FOR:', taxCode);
-    
-    const company = window.hkdData[taxCode];
-    if (!company) {
-        console.error('❌ Company not found:', taxCode);
-        return;
-    }
-    
-    // Lấy danh sách thẻ toàn cục
-    const globalTags = getAllGlobalTags();
-    
-    const modalContent = `
-        <div class="quick-note-modal">
-            <h4 style="margin-bottom: 15px; color: #1976d3;">📝 Thêm ghi chú cho ${company.name}</h4>
-            
-            <div class="form-group" style="margin-bottom: 15px;">
-                <textarea id="quick-note-content" placeholder="Nội dung ghi chú..." rows="4" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; resize: vertical;"></textarea>
-            </div>
-            
-            <div class="form-group" style="margin-bottom: 15px;">
-                <label style="display: block; margin-bottom: 8px; font-weight: bold;">🏷️ Quản lý thẻ:</label>
-                
-                <!-- Input thêm thẻ mới -->
-                <div style="display: flex; gap: 8px; margin-bottom: 10px;">
-                    <input type="text" id="new-global-tag-input" placeholder="Thêm thẻ mới..." style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                    <button onclick="addGlobalTagFromInput()" class="btn-success" style="padding: 8px 12px;">➕ Thêm</button>
-                </div>
-                
-                <!-- Danh sách thẻ hiện có -->
-                <div id="global-tags-container" style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; min-height: 40px; max-height: 120px; overflow-y: auto; padding: 8px; border: 1px solid #eee; border-radius: 4px;">
-                    ${renderGlobalTags(globalTags)}
-                </div>
-                
-                <!-- Thẻ đã chọn -->
-                <div>
-                    <label style="display: block; margin-bottom: 5px; font-size: 13px;">Thẻ đã chọn:</label>
-                    <div id="selected-tags-display" style="min-height: 30px; padding: 5px; border: 1px dashed #ddd; border-radius: 4px;">
-                        <em style="color: #999;">Chưa chọn thẻ nào</em>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="form-group" style="margin-bottom: 15px;">
-                <label style="display: block; margin-bottom: 8px; font-weight: bold;">⏰ Nhắc nhở:</label>
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <input type="date" id="reminder-date" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                    <input type="time" id="reminder-time" value="09:00" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                </div>
-            </div>
-            
-            <div class="modal-actions" style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #eee; padding-top: 15px;">
-                <button onclick="closeModal()" class="btn-secondary" style="padding: 8px 16px;">❌ Hủy</button>
-                <button id="save-quick-note" class="btn-success" style="padding: 8px 16px;">💾 Lưu ghi chú</button>
-            </div>
-        </div>
-    `;
-    
-    showModal('Thêm Ghi Chú Nhanh', modalContent);
-    
-    // Xử lý sự kiện lưu
-    const saveBtn = document.getElementById('save-quick-note');
-    if (saveBtn) {
-        saveBtn.addEventListener('click', function() {
-            saveQuickNoteWithGlobalTags(taxCode);
-        });
-    }
-}
 
 function showQuickNoteModal(taxCode) {
     console.log('🎪 OPENING NOTE MODAL FOR:', taxCode);
@@ -252,238 +184,38 @@ function showQuickNoteModal(taxCode) {
         return;
     }
     
-    // Lấy danh sách thẻ toàn cục
-    const globalTags = getAllGlobalTags();
-    
     const modalContent = `
         <div class="quick-note-modal">
-            <h4 style="margin-bottom: 15px; color: #1976d3;">📝 Thêm ghi chú cho ${company.name}</h4>
-            
-            <div class="form-group" style="margin-bottom: 15px;">
-                <textarea id="quick-note-content" placeholder="Nội dung ghi chú..." rows="4" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; resize: vertical;"></textarea>
+            <h4>📝 Thêm ghi chú cho ${company.name}</h4>
+            <div class="form-group">
+                <textarea id="quick-note-content" placeholder="Nội dung ghi chú..." rows="4" style="width: 100%; padding: 10px;"></textarea>
             </div>
-            
-            <div class="form-group" style="margin-bottom: 15px;">
-                <label style="display: block; margin-bottom: 8px; font-weight: bold;">🏷️ Quản lý thẻ:</label>
-                
-                <!-- Input thêm thẻ mới -->
-                <div style="display: flex; gap: 8px; margin-bottom: 10px;">
-                    <input type="text" id="new-global-tag-input" placeholder="Thêm thẻ mới..." style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                    <button onclick="addGlobalTagFromInput()" class="btn-success" style="padding: 8px 12px;">➕ Thêm</button>
-                </div>
-                
-                <!-- Danh sách thẻ hiện có -->
-                <div id="global-tags-container" style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; min-height: 40px; max-height: 120px; overflow-y: auto; padding: 8px; border: 1px solid #eee; border-radius: 4px;">
-                    ${renderGlobalTags(globalTags)}
-                </div>
-                
-                <!-- Thẻ đã chọn -->
-                <div>
-                    <label style="display: block; margin-bottom: 5px; font-size: 13px;">Thẻ đã chọn:</label>
-                    <div id="selected-tags-display" style="min-height: 30px; padding: 5px; border: 1px dashed #ddd; border-radius: 4px;">
-                        <em style="color: #999;">Chưa chọn thẻ nào</em>
-                    </div>
-                </div>
+            <div class="form-group">
+                <label>🏷️ Thẻ (tùy chọn):</label>
+                <input type="text" id="quick-note-tags" placeholder="vd: urgent, congno, quantrong">
+                <small style="color: #666;">Phân cách bằng dấu phẩy</small>
             </div>
-            
-            <div class="form-group" style="margin-bottom: 15px;">
-                <label style="display: block; margin-bottom: 8px; font-weight: bold;">⏰ Nhắc nhở:</label>
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <input type="date" id="reminder-date" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                    <input type="time" id="reminder-time" value="09:00" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                </div>
-            </div>
-            
-            <div class="modal-actions" style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #eee; padding-top: 15px;">
-                <button onclick="closeModal()" class="btn-secondary" style="padding: 8px 16px;">❌ Hủy</button>
-                <button id="save-quick-note" class="btn-success" style="padding: 8px 16px;">💾 Lưu ghi chú</button>
+            <div class="modal-actions">
+                <button id="save-quick-note" class="btn-success">💾 Lưu</button>
+                <button class="btn-secondary" onclick="closeModal()">❌ Hủy</button>
             </div>
         </div>
     `;
     
     showModal('Thêm Ghi Chú Nhanh', modalContent);
     
-    // Xử lý sự kiện lưu
+    // 🎯 THÊM DEBUG VÀO EVENT LISTENER
     const saveBtn = document.getElementById('save-quick-note');
+    console.log('💾 Save button found:', saveBtn);
+    
     if (saveBtn) {
         saveBtn.addEventListener('click', function() {
-            saveQuickNoteWithGlobalTags(taxCode);
+            console.log('💾 SAVE BUTTON CLICKED');
+            saveQuickNote(taxCode);
         });
-    }
-}
-
-function getAllGlobalTags() {
-    // Lấy tất cả thẻ từ tất cả công ty và gộp lại
-    const allTags = new Set();
-    Object.values(window.hkdData).forEach(company => {
-        if (company.tags) {
-            company.tags.forEach(tag => allTags.add(tag));
-        }
-    });
-    return Array.from(allTags);
-}
-let selectedTags = new Set();
-
-function toggleTagSelection(tag) {
-    if (selectedTags.has(tag)) {
-        selectedTags.delete(tag);
     } else {
-        selectedTags.add(tag);
+        console.error('❌ Save button not found!');
     }
-    updateSelectedTagsDisplay();
-}
-
-function updateSelectedTagsDisplay() {
-    const display = document.getElementById('selected-tags-display');
-    if (!display) return;
-    
-    if (selectedTags.size === 0) {
-        display.innerHTML = '<em style="color: #999;">Chưa chọn thẻ nào</em>';
-    } else {
-        display.innerHTML = Array.from(selectedTags).map(tag => `
-            <span style="background: #4caf50; color: white; padding: 3px 8px; border-radius: 10px; font-size: 12px; display: inline-block; margin: 2px;">
-                #${tag}
-            </span>
-        `).join('');
-    }
-}
-
-function addGlobalTagFromInput() {
-    const input = document.getElementById('new-global-tag-input');
-    const tag = input.value.trim();
-    
-    if (!tag) {
-        alert('Vui lòng nhập tên thẻ');
-        return;
-    }
-    
-    // Thêm vào danh sách thẻ toàn cục (không lưu trực tiếp vào company nào)
-    selectedTags.add(tag);
-    updateSelectedTagsDisplay();
-    
-    // Refresh danh sách thẻ
-    const container = document.getElementById('global-tags-container');
-    if (container) {
-        const globalTags = getAllGlobalTags();
-        container.innerHTML = renderGlobalTags(globalTags);
-    }
-    
-    input.value = '';
-}
-function saveQuickNoteWithGlobalTags(taxCode) {
-    const content = document.getElementById('quick-note-content')?.value.trim();
-    
-    if (!content) {
-        alert('Vui lòng nhập nội dung ghi chú');
-        return;
-    }
-    
-    console.log('💾 Saving note for company:', taxCode);
-    
-    ensureCompanyData(taxCode);
-    const company = window.hkdData[taxCode];
-    
-    // Khởi tạo notes nếu chưa có
-    if (!company.notes) {
-        company.notes = [];
-    }
-    
-    // Lấy tags từ selectedTags
-    const tags = Array.from(selectedTags);
-    
-    // Tạo note mới
-    const newNote = {
-        id: 'note_' + Date.now(),
-        content: content,
-        tags: tags,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        status: 'pending', // pending, completed
-        type: 'quick'
-    };
-    
-    // Thêm reminder nếu có
-    const reminderDate = document.getElementById('reminder-date')?.value;
-    const reminderTime = document.getElementById('reminder-time')?.value;
-    
-    if (reminderDate) {
-        const reminderId = 'reminder_' + Date.now();
-        const newReminder = {
-            id: reminderId,
-            title: `Nhắc: ${content.substring(0, 30)}${content.length > 30 ? '...' : ''}`,
-            description: content,
-            dueDate: reminderDate,
-            dueTime: reminderTime || '09:00',
-            priority: 'medium',
-            status: 'pending',
-            tags: tags,
-            noteId: newNote.id,
-            createdAt: new Date().toISOString()
-        };
-        
-        if (!company.reminders) company.reminders = [];
-        company.reminders.push(newReminder);
-        newNote.reminderId = reminderId;
-    }
-    
-    // Cập nhật tags của công ty
-    tags.forEach(tag => {
-        if (!company.tags.includes(tag)) {
-            company.tags.push(tag);
-        }
-    });
-    
-    company.notes.push(newNote);
-    saveData();
-    
-    // Reset selected tags
-    selectedTags.clear();
-    
-    closeModal();
-    renderCompanyList();
-    
-    console.log('✅ Note saved with status tracking!');
-    
-    showToast('✅ Đã thêm ghi chú thành công!', 2000, 'success');
-}
-function removeGlobalTag(tag) {
-    if (confirm(`Bạn có chắc muốn xóa thẻ "#${tag}" khỏi hệ thống?`)) {
-        // Xóa thẻ khỏi tất cả công ty
-        Object.values(window.hkdData).forEach(company => {
-            if (company.tags) {
-                company.tags = company.tags.filter(t => t !== tag);
-            }
-        });
-        saveData();
-        
-        // Refresh hiển thị
-        const container = document.getElementById('global-tags-container');
-        if (container) {
-            const globalTags = getAllGlobalTags();
-            container.innerHTML = renderGlobalTags(globalTags);
-        }
-        
-        // Xóa khỏi selected tags nếu có
-        selectedTags.delete(tag);
-        updateSelectedTagsDisplay();
-        
-        showToast(`✅ Đã xóa thẻ "#${tag}"`, 2000, 'success');
-    }
-}
-function renderGlobalTags(tags) {
-    if (tags.length === 0) {
-        return '<div style="color: #999; text-align: center; width: 100%;">Chưa có thẻ nào</div>';
-    }
-    
-    return tags.map(tag => `
-        <span class="global-tag-item" data-tag="${tag}" 
-              style="background: #e3f2fd; padding: 4px 8px; border-radius: 12px; display: inline-flex; align-items: center; gap: 5px; cursor: pointer; font-size: 12px;"
-              onclick="toggleTagSelection('${tag}')">
-            #${tag}
-            <span class="remove-global-tag" onclick="event.stopPropagation(); removeGlobalTag('${tag}')" 
-                  style="color: #f44336; cursor: pointer; font-size: 14px; margin-left: 3px;">×</span>
-        </span>
-    `).join('');
 }
 
 function showQuickTagModal(taxCode) {
@@ -647,32 +379,13 @@ window.showModal = showModal;
  * Đóng modal
  */
 function closeModal() {
-    // Đóng tất cả các loại modal
-    const modals = [
-        'custom-modal',
-        'processing-choice-modal',
-        'quick-note-modal',
-        'quick-tag-modal'
-    ];
-    
-    modals.forEach(modalId => {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            modal.remove();
-        }
-    });
-    
-    // Đóng modal bằng class (nếu có)
-    const modalElements = document.querySelectorAll('[id*="modal"]');
-    modalElements.forEach(modal => {
-        if (modal.style.display === 'flex' || modal.style.display === 'block') {
-            modal.remove();
-        }
-    });
-    
-    console.log('✅ Đã đóng tất cả modal');
+    const modal = document.getElementById('custom-modal');
+    if (modal) {
+        modal.remove();
+    }
 }
 window.closeModal = closeModal;
+
 // =======================================================
 // QUẢN LÝ DỮ LIỆU (localStorage)
 // =======================================================
@@ -967,146 +680,7 @@ function showUrgentNotes(taxCode) {
     
     showModal('Ghi Chú Quan Trọng', modalContent);
 }
-function setupCompanyFilters() {
-    const companyList = document.getElementById('company-list');
-    if (!companyList) return;
-    
-    // Tạo container cho bộ lọc
-    const filterContainer = document.createElement('div');
-    filterContainer.className = 'company-filters';
-    filterContainer.style.cssText = `
-        padding: 15px;
-        border-bottom: 1px solid #eee;
-        background: #f8f9fa;
-    `;
-    
-    filterContainer.innerHTML = `
-        <div style="margin-bottom: 10px;">
-            <input type="text" id="company-search" placeholder="🔍 Tìm theo tên/MST công ty..." 
-                   style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px;">
-        </div>
-        
-        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-            <select id="tag-filter" style="flex: 1; min-width: 150px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                <option value="">🏷️ Tất cả thẻ</option>
-            </select>
-            
-            <select id="note-status-filter" style="flex: 1; min-width: 150px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                <option value="">📝 Tất cả trạng thái</option>
-                <option value="has_notes">Có ghi chú</option>
-                <option value="pending">Chưa hoàn thành</option>
-                <option value="completed">Đã hoàn thành</option>
-                <option value="no_notes">Không có ghi chú</option>
-            </select>
-            
-            <button onclick="clearFilters()" class="btn-secondary" style="padding: 8px 12px; white-space: nowrap;">
-                🗑️ Xóa lọc
-            </button>
-        </div>
-    `;
-    
-    // Chèn bộ lọc vào đầu danh sách
-    companyList.parentNode.insertBefore(filterContainer, companyList);
-    
-    // Khởi tạo danh sách thẻ cho filter
-    updateTagFilterOptions();
-    
-    // Thêm event listeners
-    document.getElementById('company-search').addEventListener('input', applyCompanyFilters);
-    document.getElementById('tag-filter').addEventListener('change', applyCompanyFilters);
-    document.getElementById('note-status-filter').addEventListener('change', applyCompanyFilters);
-}
 
-function updateTagFilterOptions() {
-    const tagFilter = document.getElementById('tag-filter');
-    if (!tagFilter) return;
-    
-    const allTags = getAllGlobalTags();
-    
-    // Giữ option đầu tiên
-    const firstOption = tagFilter.options[0];
-    tagFilter.innerHTML = '';
-    tagFilter.appendChild(firstOption);
-    
-    // Thêm các tag
-    allTags.forEach(tag => {
-        const option = document.createElement('option');
-        option.value = tag;
-        option.textContent = `#${tag}`;
-        tagFilter.appendChild(option);
-    });
-}
-
-function applyCompanyFilters() {
-    const searchTerm = document.getElementById('company-search')?.value.toLowerCase() || '';
-    const selectedTag = document.getElementById('tag-filter')?.value || '';
-    const noteStatus = document.getElementById('note-status-filter')?.value || '';
-    
-    const companyItems = document.querySelectorAll('.company-item');
-    
-    companyItems.forEach(item => {
-        let shouldShow = true;
-        
-        // Lọc theo search term
-        if (searchTerm) {
-            const companyName = item.querySelector('.company-name')?.textContent.toLowerCase() || '';
-            const companyMST = item.querySelector('.company-mst')?.textContent.toLowerCase() || '';
-            if (!companyName.includes(searchTerm) && !companyMST.includes(searchTerm)) {
-                shouldShow = false;
-            }
-        }
-        
-        // Lọc theo tag (cần lấy từ data attribute)
-        if (shouldShow && selectedTag) {
-            const companyTaxCode = Array.from(item.querySelector('.company-mst')?.childNodes || [])
-                .find(node => node.nodeType === Node.TEXT_NODE)?.textContent
-                ?.replace('MST:', '')?.trim();
-            
-            if (companyTaxCode && window.hkdData[companyTaxCode]) {
-                const companyTags = window.hkdData[companyTaxCode].tags || [];
-                if (!companyTags.includes(selectedTag)) {
-                    shouldShow = false;
-                }
-            }
-        }
-        
-        // Lọc theo trạng thái ghi chú
-        if (shouldShow && noteStatus) {
-            const companyTaxCode = Array.from(item.querySelector('.company-mst')?.childNodes || [])
-                .find(node => node.nodeType === Node.TEXT_NODE)?.textContent
-                ?.replace('MST:', '')?.trim();
-            
-            if (companyTaxCode && window.hkdData[companyTaxCode]) {
-                const company = window.hkdData[companyTaxCode];
-                const notes = company.notes || [];
-                
-                switch(noteStatus) {
-                    case 'has_notes':
-                        shouldShow = notes.length > 0;
-                        break;
-                    case 'pending':
-                        shouldShow = notes.some(note => note.status !== 'completed');
-                        break;
-                    case 'completed':
-                        shouldShow = notes.length > 0 && notes.every(note => note.status === 'completed');
-                        break;
-                    case 'no_notes':
-                        shouldShow = notes.length === 0;
-                        break;
-                }
-            }
-        }
-        
-        item.style.display = shouldShow ? 'block' : 'none';
-    });
-}
-
-function clearFilters() {
-    document.getElementById('company-search').value = '';
-    document.getElementById('tag-filter').value = '';
-    document.getElementById('note-status-filter').value = '';
-    applyCompanyFilters();
-}
 function renderCompanyList() {
     const companyList = document.getElementById('company-list');
     if (!companyList) {
@@ -1129,82 +703,112 @@ function renderCompanyList() {
         const companyItem = document.createElement('div');
         companyItem.className = 'company-item';
         
-        // Kiểm tra cảnh báo
+        // KIỂM TRA CẢNH BÁO CHI TIẾT
         const alertInfo = checkUrgentReminders(company.reminders || []);
-        const hasNotes = company.notes && company.notes.length > 0;
-        const pendingNotes = company.notes ? company.notes.filter(n => n.status !== 'completed').length : 0;
+        const hasNewNotes = checkNewNotes(company.notes || []);
+        const reminderStats = countRemindersByPriority(company.reminders || []);
         
-        // Thêm class active nếu là công ty đang chọn
+        // THÊM CLASS CẢNH BÁO
+        if (alertInfo.hasAlert) {
+            companyItem.classList.add(`reminder-${alertInfo.level}`);
+            
+            // THÊM HIỆU ỨNG RUNG CHO CẢNH BÁO KHẨN CẤP
+            if (alertInfo.level === 'urgent') {
+                companyItem.style.animation = 'alertShake 0.5s infinite, alertPulse 2s infinite';
+            }
+        }
+        
         if (taxCode === window.currentCompany) {
             companyItem.classList.add('active');
         }
         
-        // Thêm viền cảnh báo nếu có reminder khẩn cấp
-        if (alertInfo.hasAlert && alertInfo.level === 'urgent') {
-            companyItem.style.border = '2px solid #ff6b6b';
-            companyItem.style.boxShadow = '0 0 10px rgba(255, 107, 107, 0.3)';
-        }
-
+        // TÍNH TOÁN THÔNG TIN
         const totalStock = Array.isArray(company.tonkhoMain) 
             ? company.tonkhoMain.reduce((sum, p) => sum + (p.quantity || 0), 0)
             : 0;
 
         const noteCount = company.notes?.length || 0;
+        const reminderCount = company.reminders?.length || 0;
         const tags = company.tags || [];
 
-        // Lấy ghi chú mới nhất để hiển thị tooltip
+        // LẤY GHÍ CHÚ MỚI NHẤT ĐỂ HIỂN THỊ TOOLTIP
         const latestNote = company.notes && company.notes.length > 0 
             ? company.notes[company.notes.length - 1] 
             : null;
 
-        // Tạo HTML
+        // TẠO HTML
         companyItem.innerHTML = `
             <div class="company-header">
                 <div class="company-name">${company.name || 'Chưa có tên'}</div>
                 <div class="company-actions">
-                    ${hasNotes ? `
-                        <span class="note-indicator" onclick="event.stopPropagation(); showNotesQuickView('${taxCode}')" 
-                              title="${noteCount} ghi chú - ${pendingNotes} chưa hoàn thành">
-                            ${pendingNotes > 0 ? '📝🔴' : '📝'}
-                            ${noteCount > 1 ? noteCount : ''}
-                        </span>
-                    ` : `
-                        <span class="note-indicator" onclick="event.stopPropagation(); showQuickNoteModal('${taxCode}')" 
-                              title="Thêm ghi chú">
-                            📝
-                        </span>
-                    `}
+                    <button class="btn-note" data-tax="${taxCode}" title="Thêm ghi chú">📝</button>
+                    <button class="btn-tag" data-tax="${taxCode}" title="Gán thẻ">🏷️</button>
                 </div>
             </div>
             
             <div class="company-mst">
                 <span>MST: ${taxCode}</span>
-                ${alertInfo.hasAlert ? `
-                    <span class="alert-indicator" onclick="event.stopPropagation(); showAlertsModal('${taxCode}')"
-                          title="${alertInfo.level === 'urgent' ? 'Cảnh báo khẩn cấp' : 'Có nhắc nhở'}">
-                        ${alertInfo.level === 'urgent' ? '🔴' : '🟡'}
-                    </span>
-                ` : ''}
+                <div class="company-indicators">
+                    <!-- ICON GHÍ CHÚ CLICKABLE -->
+                    ${noteCount > 0 ? `
+                        <span class="note-indicator" onclick="event.stopPropagation(); showNotesQuickView('${taxCode}')" 
+                              title="${noteCount} ghi chú - Click để xem">
+                            📝${noteCount > 1 ? noteCount : ''}
+                        </span>
+                    ` : ''}
+                    
+                    <!-- CỜ THÔNG BÁO CHO GHÍ CHÚ MỚI -->
+                    ${hasNewNotes ? `
+                        <div class="flag-indicator" onclick="event.stopPropagation(); showUrgentNotes('${taxCode}')" 
+                             title="Có ghi chú cần chú ý!"></div>
+                    ` : ''}
+                    
+                    <!-- CẢNH BÁO REMINDER -->
+                    ${alertInfo.hasAlert ? `
+                        <span class="alert-indicator" onclick="event.stopPropagation(); showAlertsModal('${taxCode}')"
+                              title="${reminderStats.total} nhắc nhở">
+                            ${alertInfo.level === 'urgent' ? '🔴' : alertInfo.level === 'warning' ? '🟡' : '🔵'}
+                            ${reminderStats.total > 1 ? reminderStats.total : ''}
+                        </span>
+                    ` : ''}
+                </div>
             </div>
             
             <div class="company-info">
                 <small>🧾 HĐ: ${company.invoices?.length || 0} | 📦 Tồn kho: ${totalStock.toLocaleString('vi-VN')} SP</small>
             </div>
             
-            <!-- Tooltip hiển thị khi hover -->
+            <!-- TOOLTIP HIỂN THỊ KHI HOVER -->
             ${latestNote ? `
             <div class="company-tooltip">
                 <strong>📝 Ghi chú mới nhất:</strong><br>
                 ${latestNote.content.length > 50 ? latestNote.content.substring(0, 50) + '...' : latestNote.content}
                 ${latestNote.tags && latestNote.tags.length > 0 ? `<br>🏷️ ${latestNote.tags.map(tag => `#${tag}`).join(' ')}` : ''}
-                <br><small>Trạng thái: ${latestNote.status === 'completed' ? '✅ Đã hoàn thành' : '⏳ Chưa hoàn thành'}</small>
+                ${alertInfo.hasAlert ? `<br><br><strong style="color: #f44336;">⚠️ Có ${reminderStats.total} nhắc nhở cần xử lý</strong>` : ''}
+                ${hasNewNotes ? `<br><span style="color: #ff9800;">🆕 Có ghi chú mới</span>` : ''}
+            </div>
+            ` : ''}
+            
+            <!-- META INFO -->
+            ${(noteCount > 0 || reminderCount > 0 || tags.length > 0) ? `
+            <div class="company-meta">
+                ${noteCount > 0 ? `<span class="meta-note" title="${noteCount} ghi chú">📝${noteCount > 1 ? noteCount : ''}</span>` : ''}
+                ${reminderCount > 0 ? `<span class="meta-reminder" title="${reminderCount} nhắc nhở">⏰${reminderCount > 1 ? reminderCount : ''}</span>` : ''}
+                ${tags.length > 0 ? `<span class="meta-tag" title="${tags.join(', ')}">🏷️${tags.length > 1 ? tags.length : ''}</span>` : ''}
             </div>
             ` : ''}
         `;
 
-        // Event listener cho click công ty
+        // EVENT LISTENER CHO CLICK CÔNG TY
         companyItem.addEventListener('click', (e) => {
-            if (e.target.closest('.note-indicator') || e.target.closest('.alert-indicator')) {
+            // KHÔNG CHỌN CÔNG TY NẾU CLICK VÀO NÚT HOẶC INDICATOR
+            if (e.target.closest('.btn-note') || 
+                e.target.closest('.btn-tag') || 
+                e.target.closest('.company-actions') ||
+                e.target.closest('.note-indicator') ||
+                e.target.closest('.flag-indicator') ||
+                e.target.closest('.alert-indicator') ||
+                e.target.closest('.company-indicators')) {
                 e.stopPropagation();
                 return;
             }
@@ -1216,11 +820,46 @@ function renderCompanyList() {
             }
         });
 
+        // DIRECT EVENT LISTENERS CHO NÚT (ĐỂ CHẮC CHẮN)
+        setTimeout(() => {
+            const noteBtn = companyItem.querySelector('.btn-note');
+            const tagBtn = companyItem.querySelector('.btn-tag');
+            
+            if (noteBtn) {
+                noteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    console.log('📝 Note button clicked for:', taxCode);
+                    showNoteManagerModal(taxCode);
+                });
+            }
+            
+            if (tagBtn) {
+                tagBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    console.log('🏷️ Tag button clicked for:', taxCode);
+                    showTagManagerModal(taxCode);
+                });
+            }
+        }, 0);
+
         companyList.appendChild(companyItem);
     });
     
-    // Áp dụng bộ lọc nếu có
-    applyCompanyFilters();
+    console.log(`✅ Đã render ${companies.length} công ty với đầy đủ tính năng`);
+    
+    // KIỂM TRA SAU KHI RENDER
+    setTimeout(() => {
+        const noteButtons = document.querySelectorAll('.btn-note');
+        const tagButtons = document.querySelectorAll('.btn-tag');
+        const noteIndicators = document.querySelectorAll('.note-indicator');
+        const flagIndicators = document.querySelectorAll('.flag-indicator');
+        
+        console.log(`🔍 SAU RENDER: 
+            - ${noteButtons.length} nút note
+            - ${tagButtons.length} nút tag  
+            - ${noteIndicators.length} indicator note
+            - ${flagIndicators.length} cờ cảnh báo`);
+    }, 100);
 }
 
 
@@ -1846,49 +1485,41 @@ function showToast(message, duration = 3000, type = 'info') {
     }, duration);
 }
 
+
 function showSmartNotification(reminder, companyName, taxCode) {
     const notificationId = 'smart-notification-' + Date.now();
     const note = reminder.noteId ? 
         window.hkdData[taxCode].notes.find(n => n.id === reminder.noteId) : null;
     
     const notificationHTML = `
-        <div id="${notificationId}" class="smart-notification" style="
-            position: fixed; top: 20px; right: 20px; 
-            background: white; border: 2px solid #ff6b6b; 
-            border-radius: 10px; padding: 20px; max-width: 400px; 
-            z-index: 10000; box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-            animation: slideInRight 0.3s ease;
-        ">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="font-size: 24px; color: #ff6b6b;">⏰</span>
-                    <div>
-                        <strong style="color: #d63031; font-size: 16px;">NHẮC NHỞ CẦN XỬ LÝ</strong>
-                        <div style="font-size: 12px; color: #666;">${companyName}</div>
+        <div id="${notificationId}" class="smart-notification">
+            <div style="display: flex; justify-content: between; align-items: flex-start; margin-bottom: 10px;">
+                <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
+                        <span style="font-size: 18px;">⏰</span>
+                        <strong style="color: #1976d2;">NHẮC NHỞ</strong>
+                    </div>
+                    <div style="font-weight: bold; margin-bottom: 5px;">${reminder.title}</div>
+                    ${companyName ? `<div style="color: #666; margin-bottom: 5px;">🏢 ${companyName}</div>` : ''}
+                    ${note ? `<div style="background: #f8f9fa; padding: 8px; border-radius: 4px; margin: 8px 0; font-size: 14px;">
+                        <strong>📝 Ghi chú:</strong> ${note.content}
+                    </div>` : ''}
+                    <div style="font-size: 12px; color: #888;">
+                        ⏳ ${formatDate(reminder.dueDate)} ${reminder.dueTime}
                     </div>
                 </div>
                 <button onclick="closeNotification('${notificationId}')" 
-                        style="background: none; border: none; font-size: 20px; cursor: pointer; color: #999; padding: 0;">×</button>
+                        style="background: none; border: none; font-size: 18px; cursor: pointer; color: #999;">×</button>
             </div>
             
-            <div style="margin-bottom: 15px;">
-                <div style="font-weight: bold; margin-bottom: 8px; font-size: 15px;">${reminder.title}</div>
-                ${note ? `<div style="background: #f8f9fa; padding: 10px; border-radius: 6px; margin: 10px 0; font-size: 14px; border-left: 3px solid #74b9ff;">
-                    <strong>📝 Ghi chú:</strong> ${note.content}
-                </div>` : ''}
-                <div style="font-size: 13px; color: #e17055;">
-                    ⏳ Hạn: ${formatDate(reminder.dueDate)} ${reminder.dueTime}
-                </div>
-            </div>
-            
-            <div style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #eee; padding-top: 15px;">
-                <button onclick="markReminderAsPending('${taxCode}', '${reminder.id}'); closeNotification('${notificationId}')" 
-                        style="background: #fd9644; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 5px;">
-                    ⏳ Chưa xử lý
+            <div style="display: flex; gap: 8px; justify-content: flex-end; border-top: 1px solid #eee; padding-top: 10px;">
+                <button onclick="snoozeReminder('${taxCode}', '${reminder.id}'); closeNotification('${notificationId}')" 
+                        style="background: #ff9800; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                    ⏰ Bỏ qua 1h
                 </button>
                 <button onclick="markReminderCompleted('${taxCode}', '${reminder.id}'); closeNotification('${notificationId}')" 
-                        style="background: #2ecc71; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 5px;">
-                    ✅ Đã xử lý
+                        style="background: #4caf50; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                    ✅ Đã xong
                 </button>
             </div>
         </div>
@@ -1899,25 +1530,8 @@ function showSmartNotification(reminder, companyName, taxCode) {
     // Phát âm thanh
     playPipSound();
     
-    // Tự động đóng sau 30 giây
-    setTimeout(() => closeNotification(notificationId), 30000);
-}
-
-function markReminderAsPending(taxCode, reminderId) {
-    ensureCompanyData(taxCode);
-    const company = window.hkdData[taxCode];
-    const reminder = company.reminders.find(r => r.id === reminderId);
-    
-    if (reminder) {
-        // Hoãn thêm 1 ngày
-        const newDueTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
-        reminder.dueDate = newDueTime.toISOString().split('T')[0];
-        reminder.dueTime = newDueTime.toTimeString().split(' ')[0].substring(0, 5);
-        reminder.status = 'pending';
-        saveData();
-        
-        showToast('⏳ Đã đánh dấu "Chưa xử lý" và hoãn 1 ngày!', 2000, 'info');
-    }
+    // Tự động đóng sau 15 giây
+    setTimeout(() => closeNotification(notificationId), 15000);
 }
 
 function playPipSound() {
@@ -2532,15 +2146,12 @@ function addHeaderStyles() {
         }
         
         .company-info {
-    font-size: 25px;
-    color: #6429a3ff;
-    background: #f7fafc;
-    padding: 6px 10px;
-    border-radius: 6px;
-    font-weight: 600;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
+            font-size: 14px;
+            color: #7f8c8d;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
         
         @media (max-width: 768px) {
             .current-company {
@@ -2577,62 +2188,13 @@ if (typeof window.initXuLyHoaDonLoiModule === 'undefined') {
     };
 }
 
-// Hàm chính khởi động ứng// ...existing code...
-
-// Hàm xóa toàn bộ dữ liệu ứng dụng (hkdData, tags, localStorage)
-function clearAllData(confirmPrompt = true) {
-    const key = typeof STORAGE_KEY !== 'undefined' ? STORAGE_KEY : 'hkd_manager_data';
-    if (confirmPrompt) {
-        if (!confirm('Xác nhận xóa toàn bộ dữ liệu? Hành động này không thể hoàn tác.')) return;
-    }
-    try {
-        // xóa in-memory
-        window.hkdData = {};
-        window.currentCompany = null;
-        window.globalTags = [];
-        // xóa localStorage
-        try { localStorage.removeItem(key); } catch (e) { console.warn('localStorage remove error', e); }
-        // nếu có hàm saveData tùy chỉnh thì gọi để đồng bộ
-        if (typeof window.saveData === 'function') {
-            try { window.saveData(); } catch (e) { console.warn('saveData error', e); }
-        }
-        // cập nhật giao diện nếu có các hàm render
-        if (typeof window.renderCompanyList === 'function') {
-            try { window.renderCompanyList(); } catch (e) { console.warn('renderCompanyList error', e); }
-        }
-        if (typeof window.renderNotesList === 'function') {
-            try { window.renderNotesList([], null); } catch (e) { console.warn('renderNotesList error', e); }
-        }
-        if (typeof window.renderStock === 'function') {
-            try { window.renderStock(); } catch (e) { /* ignore */ }
-        }
-        alert('Đã xóa toàn bộ dữ liệu.');
-    } catch (err) {
-        console.error('clearAllData error', err);
-        alert('Lỗi khi xóa dữ liệu. Kiểm tra console.');
-    }
-}
-window.clearAllData = clearAllData;
-
-// Gán sự kiện cho nút "clear-all-data" khi DOM ready
-function bindClearAllButton() {
-    document.addEventListener('DOMContentLoaded', () => {
-        const btn = document.getElementById('clear-all-data');
-        if (!btn) return;
-        btn.addEventListener('click', () => clearAllData(true));
-        // nếu nút bị ẩn bằng style, hiển thị
-        btn.style.display = btn.style.display === 'none' ? '' : btn.style.display;
-    });
-}
-bindClearAllButton();
-
-// ...existing code... dụng
+// Hàm chính khởi động ứng dụng
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🔄 Đang khởi động ứng dụng...');
     
     // 1. Tải dữ liệu từ LocalStorage
     loadData();
- setupCompanyFilters();
+
     // 2. Thêm CSS cho header
     addHeaderStyles();
     
