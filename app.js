@@ -12,8 +12,6 @@ const STORAGE_KEY = 'hkd_manager_data';
 
 /**
  * Định dạng tiền tệ VND
- * @param {number} amount - Số tiền cần định dạng
- * @returns {string} - Chuỗi tiền tệ (ví dụ: 123.456.789)
  */
 function formatCurrency(amount) {
     if (typeof amount !== 'number' || isNaN(amount)) return '0';
@@ -23,8 +21,6 @@ window.formatCurrency = formatCurrency;
 
 /**
  * Định dạng ngày tháng
- * @param {string} dateString - Chuỗi ngày (yyyy-mm-dd)
- * @returns {string} - Chuỗi ngày (dd/mm/yyyy)
  */
 function formatDate(dateString) {
     if (!dateString) return '';
@@ -32,16 +28,70 @@ function formatDate(dateString) {
         const date = new Date(dateString);
         return date.toLocaleDateString('vi-VN');
     } catch {
-        return dateString; // Trả về nguyên gốc nếu lỗi
+        return dateString;
     }
 }
 window.formatDate = formatDate;
 
 /**
- * Hiển thị Modal tùy chỉnh (thay thế cho alert/confirm truyền thống)
- * @param {string} title - Tiêu đề Modal
- * @param {string} content - Nội dung HTML của Modal
+ * Làm tròn kế toán
  */
+function accountingRound(amount) {
+    return Math.round(amount);
+}
+window.accountingRound = accountingRound;
+
+/**
+ * Hiển thị Modal tùy chỉnh
+ */
+// =======================
+// THÊM HÀM CLOSE MODAL VÀO GLOBAL SCOPE
+// =======================
+function closeModal() {
+    const modal = document.getElementById('custom-modal');
+    if (modal) {
+        modal.remove();
+    }
+}
+window.closeModal = closeModal;
+
+// =======================
+// SỬA HÀM CHECKMODALFUNCTION ĐỂ ĐẢM BẢO CÓ CLOSEMODAL
+// =======================
+function checkModalFunction() {
+    console.log('🔍 Kiểm tra hàm modal:');
+    console.log('- showModal:', typeof window.showModal);
+    console.log('- closeModal:', typeof window.closeModal);
+    
+    // Đảm bảo showModal tồn tại
+    if (typeof window.showModal !== 'function') {
+        console.error('❌ Hàm showModal không tồn tại, đang thêm fallback...');
+        
+        // Fallback modal đơn giản
+        window.showModal = function(title, content, size = '') {
+            const modalHtml = `
+                <div id="custom-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+                    <div style="background: white; padding: 20px; border-radius: 8px; max-width: 90%; max-height: 90%; overflow: auto; width: ${size === 'modal-xl' ? '1200px' : '800px'}">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h3 style="margin: 0; flex: 1;">${title}</h3>
+                            <button onclick="closeModal()" style="background: none; border: none; font-size: 20px; cursor: pointer;">❌</button>
+                        </div>
+                        <div>${content}</div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        };
+    }
+    
+    // Đảm bảo closeModal tồn tại
+    if (typeof window.closeModal !== 'function') {
+        console.error('❌ Hàm closeModal không tồn tại, đang thêm...');
+        window.closeModal = closeModal;
+    }
+    
+    console.log('✅ Đã kiểm tra modal functions');
+}
 function showModal(title, content) {
     const existingModal = document.getElementById('custom-modal');
     if (existingModal) document.body.removeChild(existingModal);
@@ -59,22 +109,36 @@ function showModal(title, content) {
     modal.style.alignItems = 'center';
     modal.style.zIndex = '1000';
 
+    // Xác định kích thước modal dựa trên tiêu đề
+    const isEditModal = title.includes('Chỉnh Sửa Hóa Đơn') || title.includes('Chi Tiết Hóa Đơn');
+    
     const modalContent = document.createElement('div');
     modalContent.style.backgroundColor = 'white';
-    modalContent.style.padding = '30px';
+    modalContent.style.padding = '25px';
     modalContent.style.borderRadius = '10px';
-    modalContent.style.maxWidth = '90%';
-    modalContent.style.maxHeight = '90%';
-    modalContent.style.overflow = 'auto';
-    modalContent.style.width = '800px';
     modalContent.style.boxShadow = '0 5px 15px rgba(0,0,0,0.3)';
+    
+    if (isEditModal) {
+        // Modal lớn 90% cho chỉnh sửa hóa đơn
+        modalContent.style.width = '95%';
+        modalContent.style.height = '95%';
+        modalContent.style.maxWidth = '95%';
+        modalContent.style.maxHeight = '95%';
+        modalContent.style.overflow = 'auto';
+    } else {
+        // Modal thường cho các popup khác
+        modalContent.style.maxWidth = '90%';
+        modalContent.style.maxHeight = '90%';
+        modalContent.style.overflow = 'auto';
+        modalContent.style.width = '700px';
+    }
 
     modalContent.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #ddd; padding-bottom: 10px;">
-            <h3 style="margin: 0; color: var(--primary);">${title}</h3>
-            <button id="close-modal" style="background: var(--danger); color: white; border: none; font-size: 24px; cursor: pointer; padding: 5px 12px; border-radius: 5px;">&times;</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--primary); padding-bottom: 15px;">
+            <h3 style="margin: 0; color: var(--primary); font-size: 24px; font-weight: bold;">${title}</h3>
+            <button id="close-modal" style="background: var(--danger); color: white; border: none; font-size: 20px; cursor: pointer; padding: 8px 15px; border-radius: 5px; transition: background 0.3s;">&times;</button>
         </div>
-        <div class="modal-body">${content}</div>
+        <div class="modal-body" style="${isEditModal ? 'max-height: calc(95vh - 150px); overflow-y: auto; padding: 10px;' : ''}">${content}</div>
     `;
 
     modal.appendChild(modalContent);
@@ -90,12 +154,160 @@ function showModal(title, content) {
         }
     });
 }
+
 window.showModal = showModal;
+// =======================
+// SỬA HÀM SAVEINVOICECHANGES - THAY THẾ WINDOW.CLOSEMODAL() BẰNG CLOSEMODAL()
+// =======================
+function saveInvoiceChanges(invoiceId) {
+    if (!window.currentCompany || !window.hkdData) {
+        alert('❌ Chưa chọn công ty hoặc dữ liệu không tồn tại');
+        return;
+    }
+    
+    const hkd = window.hkdData[window.currentCompany];
+    const invoice = hkd.invoices.find(inv => inv.originalFileId === invoiceId);
+    
+    if (!invoice) {
+        alert('❌ Không tìm thấy hóa đơn');
+        return;
+    }
 
-// =======================================================
-// QUẢN LÝ DỮ LIỆU (localStorage)
-// =======================================================
+    // Cập nhật thông tin cơ bản
+    const invoiceNumberInput = document.getElementById('edit-invoice-number');
+    const invoiceDateInput = document.getElementById('edit-invoice-date');
+    const supplierNameInput = document.getElementById('edit-supplier-name');
+    const supplierTaxCodeInput = document.getElementById('edit-supplier-taxcode');
+    
+    if (invoiceNumberInput) {
+        const invoiceNumber = invoiceNumberInput.value;
+        const numberParts = invoiceNumber.split('/');
+        if (numberParts.length === 2) {
+            invoice.invoiceInfo.symbol = numberParts[0];
+            invoice.invoiceInfo.number = numberParts[1];
+        }
+    }
+    
+    if (invoiceDateInput) {
+        invoice.invoiceInfo.date = invoiceDateInput.value;
+    }
+    
+    if (supplierNameInput) {
+        invoice.sellerInfo.name = supplierNameInput.value;
+    }
+    
+    if (supplierTaxCodeInput) {
+        invoice.sellerInfo.taxCode = supplierTaxCodeInput.value;
+    }
+    
+    // Cập nhật tổng hợp
+    const totalAmountInput = document.getElementById('edit-total-amount');
+    const taxAmountInput = document.getElementById('edit-tax-amount');
+    const totalPaymentInput = document.getElementById('edit-total-payment');
+    
+    if (totalAmountInput) {
+        invoice.summary.calculatedAmountAfterDiscount = parseFloat(totalAmountInput.value) || 0;
+    }
+    
+    if (taxAmountInput) {
+        invoice.summary.calculatedTax = parseFloat(taxAmountInput.value) || 0;
+    }
+    
+    if (totalPaymentInput) {
+        invoice.summary.calculatedTotal = parseFloat(totalPaymentInput.value) || 0;
+    }
 
+    // Cập nhật tồn kho nếu hóa đơn đã được nhập kho
+    if (invoice.status && invoice.status.stockPosted) {
+        updateStockAfterInvoiceEdit(invoice);
+    }
+
+    // Lưu dữ liệu
+    if (typeof window.saveData === 'function') {
+        window.saveData();
+    }
+
+    // SỬA Ở ĐÂY: Thay window.closeModal() bằng closeModal()
+    closeModal();
+    
+    // Cập nhật giao diện
+    loadPurchaseInvoices();
+    if (typeof window.renderStock === 'function') window.renderStock();
+    
+    alert('✅ Đã lưu thay đổi thành công!');
+    console.log('💾 Đã lưu thay đổi hóa đơn:', invoiceId);
+}
+
+// =======================
+// SỬA CÁC HÀM KHÁC CŨNG GỌI CLOSEMODAL
+// =======================
+function removeProduct(invoiceId, productIndex) {
+    if (!confirm('❌ Bạn có chắc muốn xóa sản phẩm này?')) {
+        return;
+    }
+    
+    if (!window.currentCompany || !window.hkdData) {
+        console.error('❌ Chưa chọn công ty hoặc dữ liệu không tồn tại');
+        return;
+    }
+    
+    const hkd = window.hkdData[window.currentCompany];
+    const invoice = hkd.invoices.find(inv => inv.originalFileId === invoiceId);
+    
+    if (invoice && invoice.products[productIndex]) {
+        invoice.products.splice(productIndex, 1);
+        
+        // Cập nhật lại STT
+        invoice.products.forEach((product, index) => {
+            product.stt = index + 1;
+        });
+        
+        // SỬA Ở ĐÂY: Thay window.closeModal() bằng closeModal()
+        closeModal();
+        setTimeout(() => {
+            editPurchaseInvoice(invoiceId);
+        }, 100);
+        
+        console.log(`✅ Đã xóa sản phẩm ${productIndex}`);
+    }
+}
+
+function addNewProduct(invoiceId) {
+    if (!window.currentCompany || !window.hkdData) {
+        console.error('❌ Chưa chọn công ty hoặc dữ liệu không tồn tại');
+        return;
+    }
+    
+    const hkd = window.hkdData[window.currentCompany];
+    const invoice = hkd.invoices.find(inv => inv.originalFileId === invoiceId);
+    
+    if (invoice) {
+        const newProduct = {
+            stt: invoice.products.length + 1,
+            msp: 'NEW',
+            name: 'Sản phẩm mới',
+            unit: 'cái',
+            quantity: 1,
+            price: 0,
+            amount: 0
+        };
+        
+        invoice.products.push(newProduct);
+        
+        // SỬA Ở ĐÂY: Thay window.closeModal() bằng closeModal()
+        closeModal();
+        setTimeout(() => {
+            editPurchaseInvoice(invoiceId);
+        }, 100);
+        
+        console.log('✅ Đã thêm sản phẩm mới');
+    }
+}
+
+// =======================
+// THÊM HÀM CLOSE MODAL VÀO EXPORT
+// =======================
+window.closeModal = closeModal;
 // =======================================================
 // QUẢN LÝ DỮ LIỆU (localStorage)
 // =======================================================
@@ -109,59 +321,12 @@ function loadData() {
         }
     } catch (e) {
         console.error('Lỗi khi tải dữ liệu từ LocalStorage:', e);
-        window.hkdData = {}; // Khôi phục về rỗng nếu có lỗi
+        window.hkdData = {};
     }
 }
-function accountingRound(amount) {
-    return Math.round(amount);
-}
-window.accountingRound = accountingRound;
 
-
-// SỬA: Kiểm tra tồn tại trước khi ghi đè
-if (typeof window.handleZipFiles === 'function') {
-    const originalHandleZipFiles = window.handleZipFiles;
-    window.handleZipFiles = async function(...args) {
-        const result = await originalHandleZipFiles(...args);
-        saveData();
-        renderCompanyList();
-        if (window.currentCompany) selectCompany(window.currentCompany); // Cập nhật lại nếu đang chọn công ty
-        return result;
-    };
-} else {
-    console.warn('handleZipFiles chưa được định nghĩa, bỏ qua ghi đè');
-}
-// Thêm vào ketoan.js
-function debugAccountingData() {
-    if (!window.currentCompany) {
-        console.log('❌ Chưa chọn công ty');
-        return;
-    }
-    
-    const hkd = hkdData[window.currentCompany];
-    console.log('🐛 DEBUG DỮ LIỆU KẾ TOÁN:', {
-        company: window.currentCompany,
-        companyName: hkd.name,
-        hasAccountingData: !!hkd.accountingTransactions,
-        accountingTransactions: hkd.accountingTransactions,
-        allCompanies: Object.keys(hkdData).map(key => ({
-            company: key,
-            name: hkdData[key].name,
-            hasAccounting: !!hkdData[key].accountingTransactions,
-            count: hkdData[key].accountingTransactions ? hkdData[key].accountingTransactions.length : 0
-        }))
-    });
-}
-
-// Gọi hàm debug khi cần
-window.debugAccountingData = debugAccountingData;
 function saveData() {
     try {
-        // Lưu dữ liệu kế toán trước khi lưu toàn bộ
-        if (typeof window.saveAccountingData === 'function') {
-            window.saveAccountingData();
-        }
-        
         localStorage.setItem(STORAGE_KEY, JSON.stringify(window.hkdData));
         console.log('Dữ liệu đã được lưu vào LocalStorage.');
     } catch (e) {
@@ -169,32 +334,42 @@ function saveData() {
     }
 }
 
-// Ghi đè các hàm cần lưu dữ liệu sau khi thực thi
-const originalHandleZipFiles = window.handleZipFiles;
-window.handleZipFiles = async function(...args) {
-    const result = await originalHandleZipFiles(...args);
-    saveData();
-    renderCompanyList();
-    if (window.currentCompany) selectCompany(window.currentCompany); // Cập nhật lại nếu đang chọn công ty
-    return result;
-};
-
 // =======================================================
 // QUẢN LÝ CÔNG TY VÀ GIAO DIỆN CHÍNH
 // =======================================================
+// Toggle sidebar trên mobile
+function toggleSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.querySelector('.sidebar-overlay');
+    sidebar.classList.toggle('mobile-open');
+    overlay.classList.toggle('mobile-open');
+}
 
-// Hiển thị danh sách công ty
+// Đóng sidebar khi click overlay
+function closeSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.querySelector('.sidebar-overlay');
+    sidebar.classList.remove('mobile-open');
+    overlay.classList.remove('mobile-open');
+}
+
+// Gắn sự kiện
 function renderCompanyList() {
     const companyList = document.getElementById('company-list');
-    companyList.innerHTML = '';
-
-    const companies = Object.keys(window.hkdData).sort();
-
-    if (companies.length === 0) {
-        companyList.innerHTML = '<div class="company-item no-company">Chưa có công ty nào</div>';
+    if (!companyList) {
+        console.error('❌ Không tìm thấy #company-list');
         return;
     }
 
+    companyList.innerHTML = '';
+
+    if (!window.hkdData || Object.keys(window.hkdData).length === 0) {
+        companyList.innerHTML = '<div class="company-item no-company">📭 Chưa có công ty nào</div>';
+        return;
+    }
+
+    const companies = Object.keys(window.hkdData).sort();
+    
     companies.forEach(taxCode => {
         const company = window.hkdData[taxCode];
         const companyItem = document.createElement('div');
@@ -203,7 +378,7 @@ function renderCompanyList() {
             companyItem.classList.add('active');
         }
         
-        // Cần đảm bảo tonkhoMain là mảng để reduce hoạt động, mặc dù init đã có
+        // Tính tổng số lượng tồn kho
         const totalStock = Array.isArray(company.tonkhoMain) 
             ? company.tonkhoMain.reduce((sum, p) => sum + (p.quantity || 0), 0)
             : 0;
@@ -212,7 +387,7 @@ function renderCompanyList() {
             <div class="company-name">${company.name || 'Chưa có tên'}</div>
             <div class="company-mst">MST: ${taxCode}</div>
             <div class="company-info">
-                <small>HĐ: ${company.invoices.length} | Tồn kho: ${totalStock.toLocaleString('vi-VN', { maximumFractionDigits: 0 })} SP</small>
+                <small>🧾 HĐ: ${company.invoices?.length || 0} | 📦 Tồn kho: ${totalStock.toLocaleString('vi-VN')} SP</small>
             </div>
         `;
 
@@ -222,41 +397,27 @@ function renderCompanyList() {
 
         companyList.appendChild(companyItem);
     });
+    
+    console.log(`✅ Đã render ${companies.length} công ty`);
 }
 
-// Chọn công ty và cập nhật các tab
-function selectCompany(taxCode) {
-    if (window.currentCompany === taxCode) return; // Không làm gì nếu đã chọn
-    
-    window.currentCompany = taxCode;
-    saveData(); // Lưu lại công ty đang chọn
 
-    // 1. Cập nhật giao diện sidebar và header
-    renderCompanyList();
-    const companyName = window.hkdData[taxCode].name || taxCode;
-    document.getElementById('current-company').textContent = `Đang chọn: ${companyName} (MST: ${taxCode})`;
-    
-    const companyNameKeToanElement = document.getElementById('company-name-ke-toan');
-    if (companyNameKeToanElement) {
-        companyNameKeToanElement.textContent = companyName; // Cập nhật tab Kế toán
-    }
 
-    // 2. Kích hoạt các module
-    // Lấy tên tab đang active để đảm bảo sau khi chọn công ty, tab đó vẫn được hiển thị
-    const currentTab = document.querySelector('.nav-tab.active')?.getAttribute('data-tab') || 'trich-xuat';
-    showTab(currentTab); 
-
-    // 3. Cập nhật dữ liệu cho các tab
-    if (typeof window.renderInvoices === 'function') window.renderInvoices();
-    if (typeof window.renderStock === 'function') window.renderStock();
-    if (typeof window.updateExportProductsList === 'function') window.updateExportProductsList();
-    if (typeof window.renderExportHistory === 'function') window.renderExportHistory();
-    if (typeof window.updateAccountingStats === 'function') window.updateAccountingStats();
-    
-    console.log(`Đã chọn công ty: ${taxCode}`);
+function setupTabSwitching() {
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            const tabName = this.getAttribute('data-tab');
+            showTab(tabName);
+        });
+    });
 }
 
-// Chuyển đổi tab
+// =======================================================
+// KHỞI TẠO ỨNG DỤNG - SỬA LỖI
+// =======================================================
+// =======================
+// SỬA HÀM SHOWTAB - CẬP NHẬT HEADER
+// =======================
 function showTab(tabName) {
     // Ẩn tất cả nội dung tab
     document.querySelectorAll('.tab-content').forEach(content => {
@@ -275,61 +436,196 @@ function showTab(tabName) {
     if (tabContent && navTab) {
         tabContent.classList.add('active');
         navTab.classList.add('active');
-    } else {
-        console.warn(`[showTab] Không tìm thấy tab: ${tabName}`);
         
-        // Fallback: hiển thị tab đầu tiên có sẵn
-        const firstTab = document.querySelector('.nav-tab');
-        if (firstTab) {
-            const fallbackTabName = firstTab.getAttribute('data-tab');
-            const fallbackTabContent = document.getElementById(fallbackTabName);
-            if (fallbackTabContent) {
-                fallbackTabContent.classList.add('active');
-                firstTab.classList.add('active');
+        // CẬP NHẬT HEADER VỚI TAB HIỆN TẠI
+        updateHeaderWithCurrentTab(tabName);
+        
+        // Khởi tạo module tương ứng khi chuyển tab
+        setTimeout(() => {
+            switch(tabName) {
+                case 'so-du-dau-ky':
+                    if (typeof window.initSoDuDauKyModule === 'function') window.initSoDuDauKyModule();
+                    break;
+                case 'mua-hang':
+                    if (typeof window.initMuaHangModule === 'function') window.initMuaHangModule();
+                    break;
+                case 'kho-hang':
+                    if (typeof window.initKhoHangModule === 'function') window.initKhoHangModule();
+                    break;
+                case 'ban-hang':
+                    if (typeof window.initBanHangModule === 'function') window.initBanHangModule();
+                    break;
+                case 'tien-cong-no':
+                    if (typeof window.initTienCongNoModule === 'function') window.initTienCongNoModule();
+                    break;
+                case 'thue-bao-cao':
+                    if (typeof window.initThueBaoCaoModule === 'function') window.initThueBaoCaoModule();
+                    break;
+                case 'so-sach':
+                    if (typeof window.initSoSachModule === 'function') window.initSoSachModule();
+                    break;
+                case 'xu-ly-hoa-don-loi':
+                    if (typeof window.initXuLyHoaDonLoiModule === 'function') window.initXuLyHoaDonLoiModule();
+                    break;
             }
-        }
+        }, 100);
     }
 }
 
-// Thiết lập sự kiện chuyển tab
-function setupTabSwitching() {
-    document.querySelectorAll('.nav-tab').forEach(tab => {
-        tab.addEventListener('click', function() {
-            const tabName = this.getAttribute('data-tab');
-            showTab(tabName);
-        });
-    });
+// =======================
+// HÀM CẬP NHẬT HEADER VỚI TAB HIỆN TẠI
+// =======================
+function updateHeaderWithCurrentTab(tabName) {
+    const currentCompanyElem = document.getElementById('current-company');
+    if (!currentCompanyElem) return;
+
+    const tabNames = {
+        'so-du-dau-ky': 'Số Dư Đầu Kỳ',
+        'mua-hang': 'Mua Hàng',
+        'kho-hang': 'Kho Hàng',
+        'ban-hang': 'Bán Hàng',
+        'tien-cong-no': 'Tiền & Công Nợ',
+        'thue-bao-cao': 'Thuế & Báo Cáo',
+        'so-sach': 'Sổ Sách',
+        'xu-ly-hoa-don-loi': 'Xử Lý Hóa Đơn Lỗi'
+    };
+
+    const currentTabName = tabNames[tabName] || tabName;
+    
+    if (window.currentCompany && window.hkdData[window.currentCompany]) {
+        const companyName = window.hkdData[window.currentCompany].name || window.currentCompany;
+        currentCompanyElem.innerHTML = `
+            <span class="current-tab">${currentTabName}</span>
+            <span class="company-info">🏢 ${companyName} (MST: ${window.currentCompany})</span>
+        `;
+    } else {
+        currentCompanyElem.innerHTML = `
+            <span class="current-tab">${currentTabName}</span>
+            <span class="company-info">👈 Chọn công ty để xem thông tin</span>
+        `;
+    }
 }
 
-// =======================================================
-// KHỞI TẠO ỨNG DỤNG
-// =======================================================
+// =======================
+// SỬA HÀM SELECTCOMPANY - CẬP NHẬT HEADER
+// =======================
+function selectCompany(taxCode) {
+    if (window.currentCompany === taxCode) return;
+    
+    window.currentCompany = taxCode;
+    saveData();
 
+    // Cập nhật giao diện sidebar và header
+    renderCompanyList();
+    
+    // Lấy tab hiện tại và cập nhật header
+    const currentTab = document.querySelector('.nav-tab.active')?.getAttribute('data-tab') || 'so-du-dau-ky';
+    updateHeaderWithCurrentTab(currentTab);
+    
+    // Cập nhật tên công ty trên các tab
+    const companyNameElements = [
+        'company-name-so-du', 'company-name-mua-hang', 'company-name-kho-hang',
+        'company-name-ban-hang', 'company-name-tien-cong-no', 
+        'company-name-thue-bao-cao', 'company-name-so-sach', 'company-name-xu-ly'
+    ];
+    
+    companyNameElements.forEach(elementId => {
+        const element = document.getElementById(elementId);
+        if (element) {
+            const companyName = window.hkdData[taxCode].name || taxCode;
+            element.textContent = companyName;
+        }
+    });
+
+    // Kích hoạt các module
+    showTab(currentTab);
+
+    // Cập nhật dữ liệu cho các tab
+    if (typeof window.loadOpeningBalance === 'function') window.loadOpeningBalance();
+    if (typeof window.loadPurchaseInvoices === 'function') window.loadPurchaseInvoices();
+    if (typeof window.loadProductCatalog === 'function') window.loadProductCatalog();
+    if (typeof window.loadSaleOrders === 'function') window.loadSaleOrders();
+    if (typeof window.loadCashBook === 'function') window.loadCashBook();
+    if (typeof window.loadVATSummary === 'function') window.loadVATSummary();
+    
+    console.log(`Đã chọn công ty: ${taxCode}`);
+}
+
+// =======================
+// THÊM CSS CHO HEADER
+// =======================
+function addHeaderStyles() {
+    const styles = `
+        <style>
+        .current-company {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 4px;
+        }
+        
+        .current-tab {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .company-info {
+            font-size: 14px;
+            color: #7f8c8d;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        
+        @media (max-width: 768px) {
+            .current-company {
+                align-items: flex-start;
+            }
+            
+            .current-tab {
+                font-size: 16px;
+            }
+            
+            .company-info {
+                font-size: 12px;
+            }
+        }
+        </style>
+    `;
+    
+    // Chỉ thêm CSS nếu chưa tồn tại
+    if (!document.getElementById('header-styles')) {
+        const styleElement = document.createElement('style');
+        styleElement.id = 'header-styles';
+        styleElement.innerHTML = styles;
+        document.head.appendChild(styleElement);
+    }
+}
+
+// =======================
+// CẬP NHẬT KHỞI TẠO ỨNG DỤNG
+// =======================
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔄 Đang khởi động ứng dụng...');
+    
     // 1. Tải dữ liệu từ LocalStorage
     loadData();
     
-    // 2. Khởi tạo các module con (nằm trong các file JS khác)
-    if (typeof window.initInvoiceModule === 'function') window.initInvoiceModule();
-    if (typeof window.initStockModule === 'function') window.initStockModule();
-    if (typeof window.initExportModule === 'function') window.initExportModule();
-    if (typeof window.initAccountingModule === 'function') window.initAccountingModule();
-     if (typeof window.initInvoiceModule === 'function') window.initInvoiceModule();
-    if (typeof window.initStockModule === 'function') window.initStockModule();
-    if (typeof window.initExportModule === 'function') window.initExportModule();
-    if (typeof window.initAccountingModule === 'function') window.initAccountingModule();
-
+    // 2. Thêm CSS cho header
+    addHeaderStyles();
+    
     // 3. Thiết lập chuyển đổi tab
     setupTabSwitching();
 
     // 4. Hiển thị danh sách công ty
     renderCompanyList();
 
-    // 5. Kiểm tra nếu có công ty đang được chọn (từ lần trước)
+    // 5. Kiểm tra nếu có công ty đang được chọn
     if (window.currentCompany && window.hkdData[window.currentCompany]) {
         selectCompany(window.currentCompany);
     } else {
-        // Hiển thị tab đầu tiên tồn tại thay vì cứng 'trich-xuat'
+        // Hiển thị tab đầu tiên
         const firstTab = document.querySelector('.nav-tab');
         if (firstTab) {
             const tabName = firstTab.getAttribute('data-tab');
@@ -337,171 +633,222 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // 6. Gắn sự kiện cho nút "Xóa hết dữ liệu" (Chỉ dành cho debug/reset)
-    const clearDataButton = document.getElementById('clear-all-data');
-    if (clearDataButton) {
-        clearDataButton.addEventListener('click', function() {
-            showModal('Xác Nhận Xóa Dữ Liệu', `
-                <p><strong>CẢNH BÁO:</strong> Thao tác này sẽ xóa <strong>HẾT TẤT CẢ</strong> dữ liệu hóa đơn, tồn kho, và công ty đã lưu trong trình duyệt.</p>
-                <p>Bạn có chắc chắn muốn tiếp tục không?</p>
-                <div style="text-align: right; margin-top: 20px;">
-                    <button id="confirm-clear" class="btn-danger" style="margin-right: 10px;">Xóa Ngay</button>
-                    <button id="cancel-clear" class="btn-secondary">Hủy</button>
-                </div>
-            `);
-            
-            document.getElementById('confirm-clear').addEventListener('click', function() {
-                localStorage.removeItem(STORAGE_KEY);
-                window.hkdData = {};
-                window.currentCompany = null;
-                const modal = document.getElementById('custom-modal');
-                if (modal) modal.remove(); // Đóng modal
-                window.location.reload(); // Tải lại trang
-            });
+    // 6. Gắn sự kiện cho nút "Xóa hết dữ liệu"
+    setTimeout(() => {
+        setupClearDataButton();
+    }, 100);
 
-            document.getElementById('cancel-clear').addEventListener('click', function() {
-                const modal = document.getElementById('custom-modal');
-                if (modal) modal.remove(); // Đóng modal
-            });
-        });
-    }
-
-    console.log('Ứng dụng đã khởi động hoàn tất.');
+    console.log('✅ Ứng dụng đã khởi động hoàn tất.');
 });
 
-// Thêm hàm khởi tạo tab xuất hàng
-function initExportTab() {
-    console.log('🔄 Đang khởi tạo tab xuất hàng...');
+// =======================
+// THÊM HÀM INIT CHO TAB XỬ LÝ HÓA ĐƠN LỖI (NẾU CHƯA CÓ)
+// =======================
+if (typeof window.initXuLyHoaDonLoiModule === 'undefined') {
+    window.initXuLyHoaDonLoiModule = function() {
+        console.log('🔄 Đang khởi tạo module Xử Lý Hóa Đơn Lỗi...');
+        // Khởi tạo các chức năng cho tab xử lý hóa đơn lỗi
+        if (typeof window.renderInvoices === 'function') {
+            window.renderInvoices();
+        }
+    };
+}
+
+// =======================
+// HÀM HIỂN THỊ XÁC NHẬN XÓA DỮ LIỆU
+// =======================
+function showClearDataConfirmation() {
+    const companyCount = Object.keys(window.hkdData).length;
+    let invoiceCount = 0;
+    let stockCount = 0;
     
-    // Đảm bảo container tồn tại
-    const exportTab = document.getElementById('export-tab');
-    if (!exportTab) {
-        console.error('❌ Không tìm thấy tab xuất hàng');
-        return;
-    }
-    
-    // Render form xuất hàng nếu chưa có
-    if (!document.getElementById('export-form')) {
-        exportTab.innerHTML = `
-            <div class="card">
-                <div class="card-header">Tạo Phiếu Xuất Hàng</div>
-                <div class="card-body">
-                    <form id="export-form">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="export-date">Ngày xuất hàng</label>
-                                <input type="date" id="export-date" class="form-control" value="${new Date().toISOString().substring(0, 10)}">
-                            </div>
-                            <div class="form-group">
-                                <label for="customer-name">Tên khách hàng *</label>
-                                <input type="text" id="customer-name" class="form-control" placeholder="Nhập tên khách hàng" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="customer-taxcode">Mã số thuế</label>
-                                <input type="text" id="customer-taxcode" class="form-control" placeholder="MST khách hàng">
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="export-description">Diễn giải</label>
-                            <textarea id="export-description" class="form-control" placeholder="Ghi chú về phiếu xuất"></textarea>
-                        </div>
-                        
-                        <div class="card">
-                            <div class="card-header">
-                                Danh sách sản phẩm
-                                <button type="button" id="add-export-product" class="btn-success btn-sm">Thêm sản phẩm</button>
-                            </div>
-                            <div class="card-body">
-                                <div id="export-products-container">
-                                    <!-- Các dòng sản phẩm sẽ được thêm ở đây -->
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div style="text-align: right; margin-top: 20px;">
-                            <button type="button" id="create-export-btn" class="btn-success">Tạo phiếu xuất</button>
-                        </div>
-                    </form>
-                </div>
+    // Đếm tổng số hóa đơn và sản phẩm tồn kho
+    Object.values(window.hkdData).forEach(company => {
+        invoiceCount += company.invoices ? company.invoices.length : 0;
+        stockCount += company.tonkhoMain ? company.tonkhoMain.length : 0;
+    });
+
+    const confirmMessage = `
+        <div class="clear-data-warning">
+            <div class="warning-header">
+                <span style="color: #dc3545; font-size: 24px;">⚠️</span>
+                <h4 style="color: #dc3545; margin: 0;">CẢNH BÁO: XÓA TOÀN BỘ DỮ LIỆU</h4>
             </div>
             
-            <div class="card" style="margin-top: 20px;">
-                <div class="card-header">Danh sách phiếu xuất hàng</div>
-                <div class="card-body">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>STT</th>
-                                <th>Mã phiếu</th>
-                                <th>Ngày</th>
-                                <th>Khách hàng</th>
-                                <th>MST</th>
-                                <th>SL SP</th>
-                                <th>Tổng tiền</th>
-                                <th>Thao tác</th>
-                            </tr>
-                        </thead>
-                        <tbody id="export-list">
-                            <!-- Danh sách phiếu xuất sẽ được load ở đây -->
-                        </tbody>
-                    </table>
+            <div class="data-stats" style="background: #fff3cd; padding: 15px; border-radius: 5px; margin: 15px 0;">
+                <p><strong>Dữ liệu sẽ bị xóa:</strong></p>
+                <ul style="margin: 0; padding-left: 20px;">
+                    <li>🏢 Số công ty: <strong>${companyCount}</strong></li>
+                    <li>🧾 Số hóa đơn: <strong>${invoiceCount}</strong></li>
+                    <li>📦 Sản phẩm tồn kho: <strong>${stockCount}</strong></li>
+                    <li>💰 Dữ liệu kế toán: <strong>Tất cả</strong></li>
+                </ul>
+            </div>
+            
+            <p style="color: #856404;"><strong>Thao tác này KHÔNG THỂ HOÀN TÁC!</strong></p>
+            <p>Tất cả dữ liệu sẽ bị xóa vĩnh viễn khỏi trình duyệt.</p>
+            
+            <div class="confirmation-check" style="margin: 15px 0;">
+                <label style="display: flex; align-items: center; cursor: pointer;">
+                    <input type="checkbox" id="confirm-delete-checkbox" style="margin-right: 8px;">
+                    <span>Tôi hiểu và chắc chắn muốn xóa toàn bộ dữ liệu</span>
+                </label>
+            </div>
+        </div>
+        
+        <div style="text-align: right; margin-top: 20px; border-top: 1px solid #ddd; padding-top: 15px;">
+            <button id="confirm-clear" class="btn-danger" style="margin-right: 10px;" disabled>
+                🗑️ XÓA NGAY
+            </button>
+            <button id="cancel-clear" class="btn-secondary">❌ Hủy</button>
+        </div>
+    `;
+    
+    // Sử dụng hàm showModal có sẵn hoặc tạo mới
+    if (typeof window.showModal === 'function') {
+        window.showModal('XÁC NHẬN XÓA DỮ LIỆU', confirmMessage);
+    } else {
+        // Fallback nếu hàm showModal không tồn tại
+        const modal = document.createElement('div');
+        modal.id = 'custom-modal';
+        modal.style.display = 'block';
+        modal.innerHTML = `
+            <div class="modal-overlay">
+                <div class="modal-content" style="max-width: 500px;">
+                    <div class="modal-header">
+                        <h3>XÁC NHẬN XÓA DỮ LIỆU</h3>
+                        <span class="close" onclick="document.getElementById('custom-modal').remove()">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        ${confirmMessage}
+                    </div>
                 </div>
             </div>
         `;
+        document.body.appendChild(modal);
     }
     
-    // Khởi tạo module xuất hàng
-    if (typeof window.initExportModule === 'function') {
+    // Kích hoạt nút xóa khi tích checkbox
+    setTimeout(() => {
+        const checkbox = document.getElementById('confirm-delete-checkbox');
+        const confirmButton = document.getElementById('confirm-clear');
+        
+        if (checkbox && confirmButton) {
+            checkbox.addEventListener('change', function() {
+                confirmButton.disabled = !this.checked;
+            });
+            
+            // Xử lý xác nhận xóa
+            document.getElementById('confirm-clear').addEventListener('click', function() {
+                clearAllData();
+            });
+
+            // Xử lý hủy
+            document.getElementById('cancel-clear').addEventListener('click', function() {
+                const modal = document.getElementById('custom-modal');
+                if (modal) modal.remove();
+            });
+        }
+    }, 100);
+}
+
+// =======================
+// HÀM XÓA TOÀN BỘ DỮ LIỆU - DÙNG localStorage.clear()
+// =======================
+function clearAllData() {
+    try {
+        console.log('🗑️ Đang xóa toàn bộ dữ liệu...');
+        
+        // 1. DEBUG: Kiểm tra dữ liệu trước khi xóa
+        console.log('🔍 Dữ liệu trước khi xóa:');
+        console.log('- window.hkdData:', window.hkdData);
+        console.log('- Số công ty:', Object.keys(window.hkdData).length);
+        console.log('- Toàn bộ localStorage:', localStorage);
+        
+        // 2. XÓA TOÀN BỘ LOCALSTORAGE - CÁCH TRIỆT ĐỂ
+        localStorage.clear();
+        console.log('✅ Đã xóa toàn bộ dữ liệu localStorage');
+        
+        // 3. Xóa dữ liệu trong memory
+        window.hkdData = {};
+        window.currentCompany = null;
+        console.log('✅ Đã xóa dữ liệu memory');
+        
+        // 4. Đóng modal
+        const modal = document.getElementById('custom-modal');
+        if (modal) modal.remove();
+        
+        // 5. Hiển thị thông báo và reload
         setTimeout(() => {
-            window.initExportModule();
-        }, 100);
+            // Kiểm tra lại
+            console.log('🔍 Kiểm tra sau khi xóa:');
+            console.log('- localStorage:', localStorage);
+            console.log('- window.hkdData:', window.hkdData);
+            
+            alert('✅ Đã xóa toàn bộ dữ liệu thành công! Ứng dụng sẽ reload...');
+            
+            // Reload trang
+            window.location.reload();
+        }, 300);
+        
+    } catch (error) {
+        console.error('❌ Lỗi khi xóa dữ liệu:', error);
+        alert('❌ Có lỗi xảy ra khi xóa dữ liệu: ' + error.message);
     }
 }
 
-// Cập nhật hàm xử lý tab
-document.addEventListener('DOMContentLoaded', function() {
-    const tabLinks = document.querySelectorAll('.tab-link');
-    
-    tabLinks.forEach(tab => {
-        tab.addEventListener('click', function() {
-            const tabName = this.getAttribute('data-tab');
-            
-            // Ẩn tất cả các tab content
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.style.display = 'none';
-            });
-            
-            // Hiển thị tab được chọn
-            const activeTab = document.getElementById(tabName + '-tab');
-            if (activeTab) {
-                activeTab.style.display = 'block';
+// =======================
+// HOẶC GÁN TRỰC TIẾP VÀO NÚT (Cách đơn giản)
+// =======================
+function setupClearDataButton() {
+    const clearDataButton = document.getElementById('clear-all-data');
+    if (clearDataButton) {
+        clearDataButton.addEventListener('click', function() {
+            if (confirm('🗑️ Bạn có chắc chắn muốn xóa TOÀN BỘ dữ liệu? Thao tác này không thể hoàn tác!')) {
+                // XÓA TOÀN BỘ
+                localStorage.clear();
+                window.hkdData = {};
+                window.currentCompany = null;
+                
+                console.log('✅ Đã xóa toàn bộ dữ liệu localStorage');
+                alert('✅ Đã xóa toàn bộ dữ liệu thành công!');
+                
+                // Reload trang
+                window.location.reload();
             }
-            
-            // Khởi tạo module tương ứng
-            setTimeout(() => {
-                switch(tabName) {
-                    case 'invoice':
-                        if (typeof window.initInvoiceModule === 'function') window.initInvoiceModule();
-                        break;
-                    case 'stock':
-                        if (typeof window.initStockModule === 'function') window.initStockModule();
-                        break;
-                    case 'export':
-                        initExportTab(); // Sử dụng hàm mới
-                        break;
-                    case 'accounting':
-                        if (typeof window.initAccountingModule === 'function') window.initAccountingModule();
-                        break;
-                }
-            }, 50);
         });
-    });
-    
-    // Khởi tạo tab mặc định
-    const defaultTab = document.querySelector('.tab-link.active');
-    if (defaultTab) {
-        defaultTab.click();
-    } else if (tabLinks.length > 0) {
-        tabLinks[0].click();
     }
+}
+
+// Gọi hàm này trong DOMContentLoaded
+document.addEventListener('DOMContentLoaded', function() {
+    // ... các code khác
+    
+    // Thay thế phần gắn sự kiện cũ bằng:
+    setupClearDataButton();
 });
+
+// =======================
+// HÀM SHOW MODAL (nếu chưa có)
+// =======================
+if (typeof window.showModal === 'undefined') {
+    window.showModal = function(title, content) {
+        const modal = document.createElement('div');
+        modal.id = 'custom-modal';
+        modal.style.display = 'block';
+        modal.innerHTML = `
+            <div class="modal-overlay">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>${title}</h3>
+                        <span class="close" onclick="document.getElementById('custom-modal').remove()">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        ${content}
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    };
+}
