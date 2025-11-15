@@ -2,8 +2,8 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Upload HTML từ ZIP lên GitHub</title>
-<script src="https://unpkg.com/fzip@latest/dist/fzip.min.js"></script>
+<title>Upload hóa đơn lên GitHub</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 body{font-family:sans-serif;margin:20px;}
 input, button{margin:5px 0;padding:6px 12px;}
@@ -11,104 +11,159 @@ textarea{width:100%;height:300px;margin-top:10px;}
 </style>
 </head>
 <body>
-<h1>Upload HTML từ ZIP lên GitHub</h1>
+<h1>Upload hóa đơn (ZIP/XML) lên GitHub</h1>
 
-<label>Nhập GitHub Personal Access Token:</label><br>
-<input type="text" id="githubToken" placeholder="Token GitHub" style="width:100%;"><br>
+<label>GitHub Personal Access Token:</label><br>
+<input type="text" id="githubToken" placeholder="Nhập token GitHub" style="width:100%;"><br>
 
-<label>Chọn nhiều file ZIP:</label><br>
-<input type="file" id="zipFiles" multiple accept=".zip"><br>
+<label>Chọn nhiều file ZIP/XML:</label><br>
+<input type="file" id="invoiceFiles" multiple accept=".zip,.xml"><br>
 
-<button id="uploadBtn">Upload HTML lên GitHub</button>
+<button id="uploadBtn">Upload lên GitHub</button>
 
 <h3>Log:</h3>
 <textarea id="log" readonly></textarea>
 
 <script>
+// --- Cấu hình repo GitHub ---
 const repoOwner = "Datkep92";
 const repoName = "Company";
 
-function log(msg) {
+// --- Hàm log ---
+function log(msg){
     const ta = document.getElementById("log");
     ta.value += msg + "\n";
     ta.scrollTop = ta.scrollHeight;
 }
 
-async function uploadHTML(token, filename, content, folderName) {
-    const path = `${folderName}/invoice/${filename}`;
+// --- Hàm parse XML (demo) ---
+function parseXmlInvoice(xmlText){
+    // Demo parse, bạn thay bằng logic parse XML thực tế
+    return {
+        invoiceInfo: { number: "INV123" },
+        products: [ {name: "Sản phẩm 1", price:100} ],
+        summary: { calculatedTotal: 1000 },
+        buyerInfo: { taxCode: "000000" }
+    };
+}
+
+// --- Hàm upload file lên GitHub ---
+async function uploadFile(token, path, content){
     const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${path}`;
     const base64Content = btoa(unescape(encodeURIComponent(content)));
 
     const body = {
-        message: `Upload ${filename} vào ${folderName}/invoice`,
+        message: `Upload ${path}`,
         content: base64Content
     };
 
-    try {
-        const res = await fetch(apiUrl, {
-            method: "PUT",
-            headers: {
-                "Authorization": `token ${token}`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(body)
-        });
-        const data = await res.json();
-        if (data.content && data.content.html_url) {
-            log(`✅ Upload thành công: ${data.content.html_url}`);
-        } else {
-            log(`❌ Lỗi upload ${filename}: ${JSON.stringify(data)}`);
-        }
-    } catch (err) {
-        log(`❌ Lỗi kết nối GitHub: ${err}`);
+    const res = await fetch(apiUrl, {
+        method:"PUT",
+        headers: { "Authorization": `token ${token}`, "Content-Type":"application/json" },
+        body: JSON.stringify(body)
+    });
+
+    const data = await res.json();
+    if(data.content && data.content.html_url){
+        log(`✅ Upload thành công: ${data.content.html_url}`);
+        return data.content.html_url;
+    }else{
+        log(`❌ Lỗi upload ${path}: ${JSON.stringify(data)}`);
+        return null;
     }
 }
 
-document.getElementById("uploadBtn").addEventListener("click", async () => {
-    const token = document.getElementById("githubToken").value.trim();
-    if (!token) return alert("Vui lòng nhập GitHub Token!");
+// --- Hàm trích xuất hóa đơn từ ZIP/XML ---
+async function extractInvoiceFromZip(file){
+    return new Promise((resolve,reject)=>{
+        const reader = new FileReader();
+        reader.onload = async function(e){
+            try{
+                const fileContent = e.target.result;
+                let invoice = null;
+                let htmlUrl = null;
 
-    const files = document.getElementById("zipFiles").files;
-    if (!files.length) return alert("Chưa chọn file ZIP");
+                if(file.name.toLowerCase().endsWith(".xml")){
+                    invoice = parseXmlInvoice(fileContent);
+                }else{
+                    const zip = await JSZip.loadAsync(fileContent);
+                    const xmlFiles = Object.keys(zip.files).filter(name=>name.toLowerCase().endsWith(".xml"));
+                    if(xmlFiles.length===0){ log(`⚠ Bỏ qua ${file.name}: không có file XML`); resolve(null); return; }
+                    const xmlText = await zip.file(xmlFiles[0]).async("text");
+                    invoice = parseXmlInvoice(xmlText);
+
+                    // Tìm HTML đầu tiên nếu có
+                    const htmlFiles = Object.keys(zip.files).filter(name=>name.toLowerCase().endsWith(".html"));
+                    if(htmlFiles.length>0){
+                        const htmlContent = await zip.file(htmlFiles[0]).async("text");
+                        const blob = new Blob([htmlContent], { type:'text/html' });
+                        htmlUrl = URL.createObjectURL(blob);
+                    }
+                }
+
+                invoice.originalFileId = 'local-file-' + Date.now() + '-' + (invoice.buyerInfo.taxCode || 'UNKNOWN');
+                invoice.fileName = file.name;
+                invoice.htmlUrl = htmlUrl;
+
+                resolve(invoice);
+
+            }catch(err){
+                log(`❌ Lỗi đọc file ${file.name}: ${err}`);
+                resolve(null);
+            }
+        };
+
+        reader.onerror = ()=>reject(new Error('Không thể đọc file'));
+        if(file.name.toLowerCase().endsWith('.xml')){
+            reader.readAsText(file);
+        }else{
+            reader.readAsArrayBuffer(file);
+        }
+    });
+}
+
+// --- Upload tất cả file ---
+document.getElementById("uploadBtn").addEventListener("click", async ()=>{
+    const token = document.getElementById("githubToken").value.trim();
+    if(!token) return alert("Vui lòng nhập GitHub Token!");
+    const files = document.getElementById("invoiceFiles").files;
+    if(!files.length) return alert("Chưa chọn file ZIP/XML");
 
     let counter = 1;
     const today = new Date();
-    const yyyymmdd = today.getFullYear().toString() +
-                      String(today.getMonth()+1).padStart(2,"0") +
-                      String(today.getDate()).padStart(2,"0");
+    const yyyymmdd = today.getFullYear().toString()+
+                      String(today.getMonth()+1).padStart(2,'0')+
+                      String(today.getDate()).padStart(2,'0');
 
-    for (const file of files) {
+    for(const file of files){
         log(`⏳ Đang xử lý: ${file.name}`);
+        const invoice = await extractInvoiceFromZip(file);
+        if(!invoice) continue;
 
-        try {
-            const arrayBuffer = await file.arrayBuffer();
-            const zip = fzip.readZip(arrayBuffer);
+        const folderName = `${yyyymmdd}-ABC${String(counter).padStart(2,'0')}`;
+        counter++;
 
-            // Tìm HTML đầu tiên
-            let htmlFile = null;
-            for (let f of zip.files) {
-                if (f.name.toLowerCase().endsWith(".html")) {
-                    htmlFile = f;
-                    break;
-                }
+        // Upload XML
+        if(file.name.toLowerCase().endsWith(".xml")){
+            await uploadFile(token, `${folderName}/invoice/${file.name}`, await file.text());
+        }else{
+            const zip = await JSZip.loadAsync(await file.arrayBuffer());
+            const xmlFiles = Object.keys(zip.files).filter(name=>name.toLowerCase().endsWith(".xml"));
+            if(xmlFiles.length>0){
+                const xmlText = await zip.file(xmlFiles[0]).async("text");
+                await uploadFile(token, `${folderName}/invoice/${xmlFiles[0]}`, xmlText);
             }
 
-            if (!htmlFile) {
-                log(`⚠ Bỏ qua ${file.name}: không có file HTML`);
-                continue;
+            // Upload HTML nếu có
+            const htmlFiles = Object.keys(zip.files).filter(name=>name.toLowerCase().endsWith(".html"));
+            if(htmlFiles.length>0){
+                const htmlText = await zip.file(htmlFiles[0]).async("text");
+                await uploadFile(token, `${folderName}/invoice/${htmlFiles[0]}`, htmlText);
             }
-
-            const htmlContent = new TextDecoder().decode(htmlFile.data);
-            const folderName = `${yyyymmdd}-ABC${String(counter).padStart(2,"0")}`;
-            counter++;
-
-            await uploadHTML(token, htmlFile.name, htmlContent, folderName);
-        } catch (err) {
-            log(`❌ Lỗi xử lý ZIP ${file.name}: ${err}`);
         }
     }
 
-    log("✅ Hoàn tất upload tất cả ZIP có HTML.");
+    log("✅ Hoàn tất upload tất cả file.");
 });
 </script>
 </body>
