@@ -542,55 +542,46 @@ function addStatusBadgeStyles() {
 }
 async function processPurchaseInvoices() {
     const fileInput = document.getElementById('purchase-invoice-files');
-    if (!fileInput || !fileInput.files.length) {
-        alert('📁 Vui lòng chọn file XML/ZIP trước.');
-        return;
-    }
+    const files = fileInput.files;
 
-    if (!window.currentCompany) {
-        alert('👈 Vui lòng chọn công ty trước.');
+    if (files.length === 0) {
+        alert('Vui lòng chọn file hóa đơn mua hàng.');
         return;
     }
 
     try {
-        console.log('🔄 Bắt đầu xử lý hóa đơn mua hàng...');
+        console.log('Bắt đầu xử lý files:', files);
         
-        // Hiển thị trạng thái loading
-        showLoading('Đang xử lý hóa đơn...');
-
-        const files = Array.from(fileInput.files);
-        console.log(`📁 Số file cần xử lý: ${files.length}`);
-
-        // Gọi hàm xử lý từ module trích xuất
-        if (typeof window.processZipFiles === 'function') {
-            const results = await window.processZipFiles(files, window.currentCompany);
-            
-            // Cập nhật thống kê
-            updatePurchaseFileStats(
-                files.length,
-                results.processedCount,
-                results.errorCount,
-                results.duplicateCount,
-                results.stockPostedCount
-            );
-            
-            // Hiển thị kết quả
-            showPurchaseSuccessMessage(results);
-            
-            // Reload danh sách
-            loadPurchaseInvoices();
-            loadPayableList();
-            
-        } else {
-            throw new Error('Hàm processZipFiles không tồn tại');
+        if (typeof window.handleZipFiles !== 'function') {
+            throw new Error('Hệ thống trích xuất chưa được khởi tạo. Vui lòng tải lại trang.');
         }
-
+        
+        // TẠM THỜI VÔ HIỆU HÓA HÀM updateFileStats ĐỂ TRÁNH LỖI
+        const originalUpdateFileStats = window.updateFileStats;
+        window.updateFileStats = function() {
+            console.log('updateFileStats tạm thời bị vô hiệu hóa trong tab Mua Hàng');
+        };
+        
+        const results = await window.handleZipFiles(files);
+        
+        // KHÔI PHỤC HÀM SAU KHI XỬ LÝ
+        window.updateFileStats = originalUpdateFileStats;
+        
+        console.log('Kết quả xử lý:', results);
+        
+        // Cập nhật giao diện
+        loadPurchaseInvoices();
+        loadPayableList();
+        
+        if (typeof window.renderCompanyList === 'function') {
+            window.renderCompanyList();
+        }
+        
+        alert(`Đã xử lý ${results.processedCount} hóa đơn mua hàng thành công!\n- Thành công: ${results.processedCount}\n- Trùng: ${results.duplicateCount}\n- Lỗi: ${results.errorCount}`);
+        
     } catch (error) {
-        console.error('❌ Lỗi xử lý hóa đơn:', error);
-        alert(`❌ Lỗi xử lý hóa đơn: ${error.message}`);
-    } finally {
-        // Reset file input
-        fileInput.value = '';
+        console.error('Lỗi xử lý hóa đơn mua hàng:', error);
+        alert(`Lỗi xử lý hóa đơn: ${error.message}`);
     }
 }
 function initFileInputListener() {
