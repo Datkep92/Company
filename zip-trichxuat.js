@@ -264,11 +264,14 @@ function showProcessingChoiceModal(files) {
     console.log('🎪 Bắt đầu hiển thị modal lựa chọn');
     console.log('📊 Số file:', fileCount);
     
+    // Đóng modal cũ nếu có
+    closeModal();
+    
     const modalContent = `
         <div class="processing-choice-modal">
             <div class="modal-header">
                 <h3>🎯 CHỌN CÁCH XỬ LÝ HÓA ĐƠN</h3>
-                <span class="close" onclick="document.getElementById('custom-modal').remove()">&times;</span>
+                <span class="close" onclick="closeModal()">&times;</span>
             </div>
             
             <div class="modal-body">
@@ -318,7 +321,7 @@ function showProcessingChoiceModal(files) {
                     <button id="confirm-processing" class="btn-success">
                         🚀 BẮT ĐẦU XỬ LÝ
                     </button>
-                    <button class="btn-secondary" onclick="document.getElementById('custom-modal').remove()">
+                    <button class="btn-secondary" onclick="closeModal()">
                         ❌ HỦY
                     </button>
                 </div>
@@ -326,14 +329,22 @@ function showProcessingChoiceModal(files) {
         </div>
     `;
     
-    // Hiển thị modal ở trung tâm
+    // Sử dụng ID 'custom-modal' để nhất quán
     const modal = document.createElement('div');
     modal.id = 'custom-modal';
-    modal.innerHTML = `
-        <div class="modal-overlay">
-            ${modalContent}
-        </div>
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.6);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
     `;
+    modal.innerHTML = modalContent;
     document.body.appendChild(modal);
     
     console.log('✅ Đã thêm modal vào DOM');
@@ -346,17 +357,19 @@ function showProcessingChoiceModal(files) {
         });
     });
     
-    // Xử lý khi bấm bắt đầu
+    // Xử lý khi bấm bắt đầu - SỬA LẠI
     document.getElementById('confirm-processing').addEventListener('click', function() {
         const selectedMode = document.querySelector('input[name="processing-mode"]:checked').value;
         console.log('🚀 Người dùng chọn mode:', selectedMode);
+        
+        // Đóng popup trước khi xử lý
+        closeModal();
+        
+        // Bắt đầu xử lý hóa đơn
         startInvoiceProcessing(files, selectedMode);
-        document.getElementById('custom-modal').remove();
     });
 }
 
-// =======================
-// HÀM XỬ LÝ THEO LỰA CHỌN (ĐÃ CÓ)
 // =======================
 async function startInvoiceProcessing(files, mode) {
     console.log(`🔄 Bắt đầu xử lý ${files.length} file với chế độ: ${mode}`);
