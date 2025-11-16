@@ -1,5 +1,4 @@
 
-
 window.loadMoreInvoices = loadMoreInvoices; // Xuất toàn cục
 // =======================
 // Hàm tạo options MSP
@@ -2623,6 +2622,10 @@ function setupPayableFilterEvents() {
 // BIẾN TOÀN CỤC
 window.payableDisplayLimit = 5;
 
+// =======================
+// RENDER BẢNG CÔNG NỢ ĐỒNG BỘ VỚI HÓA ĐƠN
+// =======================
+
 function renderSimpleFilteredPayable(suppliers) {
     const payableList = document.getElementById('payable-list');
     if (!payableList) return;
@@ -2630,58 +2633,152 @@ function renderSimpleFilteredPayable(suppliers) {
     payableList.innerHTML = '';
     
     if (suppliers.length === 0) {
-        payableList.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">📭 Không tìm thấy NCC phù hợp</td></tr>';
+        payableList.innerHTML = '<div class="no-data-message">📭 Không tìm thấy NCC phù hợp</div>';
         return;
     }
     
-    // GIỚI HẠN HIỂN THỊ
     const displayedSuppliers = suppliers.slice(0, window.payableDisplayLimit);
     
-    // HIỂN THỊ NCC
+    // Tạo container hiện đại
+    const container = document.createElement('div');
+    container.className = 'table-modern-container';
+    
+    // === PHIÊN BẢN DESKTOP ===
+    const tableContainer = document.createElement('div');
+    tableContainer.className = 'payable-table-container';
+    
+    const table = document.createElement('table');
+    table.className = 'table-modern';
+    table.innerHTML = `
+        <thead>
+            <tr>
+                <th>Nhà Cung Cấp</th>
+                <th>MST</th>
+                <th class="text-right">Tổng Nợ</th>
+                <th class="text-right">Đã Thanh Toán</th>
+                <th class="text-right">Còn Nợ</th>
+                <th>Thao Tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${displayedSuppliers.map((supplier, index) => {
+                const debtLevel = supplier.remaining > 0 ? 'debt-warning' : 'debt-clear';
+                const debtStatus = supplier.remaining > 0 ? 'text-danger' : 'text-success';
+                
+                return `
+                    <tr class="${debtLevel}">
+                        <td>
+                            <div class="supplier-info-compact">
+                                <div class="supplier-name">${supplier.name}</div>
+                                <div class="supplier-contact">${supplier.phone || 'Chưa có SĐT'}</div>
+                            </div>
+                        </td>
+                        <td><code class="tax-code">${supplier.taxCode}</code></td>
+                        <td class="text-right amount-total">${window.formatCurrency(supplier.totalDebt)}</td>
+                        <td class="text-right amount-paid">${window.formatCurrency(supplier.paid)}</td>
+                        <td class="text-right amount-remaining ${debtStatus}">
+                            <strong>${window.formatCurrency(supplier.remaining)}</strong>
+                        </td>
+                        <td>
+                            <div class="button-group-modern">
+                                <button class="btn-modern btn-info" onclick="showSupplierHistory('${supplier.taxCode}')" title="Lịch sử giao dịch">
+                                    <span class="btn-icon">📊</span>
+                                    <span class="btn-text">Lịch sử</span>
+                                </button>
+                                ${supplier.remaining > 0 ? 
+                                  `<button class="btn-modern btn-success" onclick="makePayment('${supplier.taxCode}')" title="Thanh toán">
+                                    <span class="btn-icon">💳</span>
+                                    <span class="btn-text">Thanh toán</span>
+                                  </button>` : 
+                                  ''}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('')}
+        </tbody>
+    `;
+    tableContainer.appendChild(table);
+    
+    // === PHIÊN BẢN MOBILE ===
+    const cardsContainer = document.createElement('div');
+    cardsContainer.className = 'payable-cards-container';
+    
+    const cardsGrid = document.createElement('div');
+    cardsGrid.className = 'payable-cards-grid';
+    
     displayedSuppliers.forEach((supplier, index) => {
-        const row = document.createElement('tr');
+        const debtStatus = supplier.remaining > 0 ? 'debt' : 'paid';
+        const statusText = supplier.remaining > 0 ? 'Còn nợ' : 'Đã trả hết';
+        const statusColor = supplier.remaining > 0 ? '#e74c3c' : '#27ae60';
         
-        const debtLevel = supplier.remaining > 0 ? 'table-warning' : '';
-        const debtStatus = supplier.remaining > 0 ? 'text-danger' : 'text-success';
-        
-        row.className = debtLevel;
-        row.innerHTML = `
-            <td>
-                <strong class="supplier-name" style="cursor: pointer; color: #007bff;" 
-                        onclick="showSupplierHistory('${supplier.taxCode}')">
-                    ${supplier.name}
-                </strong>
-            </td>
-            <td><code>${supplier.taxCode}</code></td>
-            <td style="text-align: right;">${window.formatCurrency(supplier.totalDebt)}</td>
-            <td style="text-align: right;">${window.formatCurrency(supplier.paid)}</td>
-            <td style="text-align: right; font-weight: bold;" class="${debtStatus}">
-                ${window.formatCurrency(supplier.remaining)}
-            </td>
-            <td>
-                <div class="button-group-small">
-                    <button class="btn-sm btn-primary" onclick="showSupplierHistory('${supplier.taxCode}')">📊</button>
-                    ${supplier.remaining > 0 ? 
-                      `<button class="btn-sm btn-success" onclick="makePayment('${supplier.taxCode}')">💳</button>` : 
-                      ''}
+        const card = document.createElement('div');
+        card.className = `payable-card ${debtStatus}`;
+        card.innerHTML = `
+            <!-- Header -->
+            <div class="card-header">
+                <div class="supplier-main-info">
+                    <div class="supplier-name">${supplier.name}</div>
+                    <div class="supplier-tax">MST: ${supplier.taxCode}</div>
                 </div>
-            </td>
+                <div class="debt-status" style="color: ${statusColor}">
+                    ${statusText}
+                </div>
+            </div>
+            
+            <!-- Debt Summary -->
+            <div class="debt-summary">
+                <div class="debt-item">
+                    <div class="debt-label">Tổng nợ</div>
+                    <div class="debt-value">${window.formatCurrency(supplier.totalDebt)}</div>
+                </div>
+                <div class="debt-item">
+                    <div class="debt-label">Đã trả</div>
+                    <div class="debt-value paid">${window.formatCurrency(supplier.paid)}</div>
+                </div>
+                <div class="debt-item highlight">
+                    <div class="debt-label">Còn nợ</div>
+                    <div class="debt-value remaining" style="color: ${statusColor}">
+                        ${window.formatCurrency(supplier.remaining)}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Actions -->
+            <div class="card-actions">
+                <button class="card-btn card-btn-info" onclick="showSupplierHistory('${supplier.taxCode}')">
+                    <span class="btn-icon">📊</span>
+                    Lịch sử
+                </button>
+                ${supplier.remaining > 0 ? 
+                  `<button class="card-btn card-btn-success" onclick="makePayment('${supplier.taxCode}')">
+                    <span class="btn-icon">💳</span>
+                    Thanh toán
+                   </button>` : 
+                  ''}
+            </div>
         `;
         
-        payableList.appendChild(row);
+        cardsGrid.appendChild(card);
     });
     
-    // HIỂN THỊ NÚT "XEM THÊM" NẾU CÒN NHIỀU NCC
+    cardsContainer.appendChild(cardsGrid);
+    
+    // Thêm cả 2 phiên bản
+    container.appendChild(tableContainer);
+    container.appendChild(cardsContainer);
+    payableList.appendChild(container);
+    
+    // Xem thêm
     if (suppliers.length > window.payableDisplayLimit) {
-        const loadMoreRow = document.createElement('tr');
-        loadMoreRow.innerHTML = `
-            <td colspan="6" style="text-align: center; padding: 15px;">
-                <button onclick="loadMorePayable()" class="btn btn-outline-primary btn-sm">
-                    📋 Xem thêm ${suppliers.length - window.payableDisplayLimit} NCC
-                </button>
-            </td>
+        const loadMoreDiv = document.createElement('div');
+        loadMoreDiv.className = 'load-more-container';
+        loadMoreDiv.innerHTML = `
+            <button onclick="loadMorePayable()" class="btn btn-outline-primary btn-sm load-more-btn">
+                📋 Xem thêm ${suppliers.length - window.payableDisplayLimit} NCC
+            </button>
         `;
-        payableList.appendChild(loadMoreRow);
+        payableList.appendChild(loadMoreDiv);
     }
 }
 
@@ -3260,73 +3357,167 @@ function renderSimpleFilteredInvoices(invoices) {
     invoiceList.innerHTML = '';
     
     if (invoices.length === 0) {
-        invoiceList.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px;">📭 Không tìm thấy hóa đơn phù hợp</td></tr>';
+        invoiceList.innerHTML = '<div class="no-data-message">📭 Không tìm thấy hóa đơn phù hợp</div>';
         return;
     }
     
-    // GIỚI HẠN HIỂN THỊ THEO invoiceDisplayLimit
     const displayedInvoices = invoices.slice(0, window.invoiceDisplayLimit);
     
-    console.log(`📊 Hiển thị ${displayedInvoices.length}/${invoices.length} hóa đơn, limit: ${window.invoiceDisplayLimit}`);
+    // Tạo container cho cả 2 phiên bản
+    const container = document.createElement('div');
     
-    // HIỂN THỊ HÓA ĐƠN
+    // === PHIÊN BẢN DESKTOP (TABLE) ===
+    const tableContainer = document.createElement('div');
+    tableContainer.className = 'invoice-table-container';
+    
+    const table = document.createElement('table');
+    table.className = 'table-invoice';
+    table.innerHTML = `
+        <thead>
+            <tr>
+                <th>STT</th>
+                <th>Số HĐ</th>
+                <th>Ngày</th>
+                <th>Nhà CC</th>
+                <th>MST</th>
+                <th class="text-right">Tổng tiền</th>
+                <th class="text-right">Thuế</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${displayedInvoices.map((invoice, index) => {
+                let statusBadge = '';
+                let statusClass = '';
+                
+                if (invoice.status && invoice.status.stockPosted) {
+                    statusBadge = '<span class="badge badge-success">✅ Đã nhập kho</span>';
+                    statusClass = 'table-success';
+                } else if (invoice.status && invoice.status.validation === 'error') {
+                    statusBadge = '<span class="badge badge-danger">❌ Lỗi</span>';
+                    statusClass = 'table-danger';
+                } else {
+                    statusBadge = '<span class="badge badge-warning">⚠️ Chưa xử lý</span>';
+                    statusClass = 'table-warning';
+                }
+                
+                return `
+                    <tr class="${statusClass}">
+                        <td>${index + 1}</td>
+                        <td><strong>${invoice.invoiceInfo.symbol}/${invoice.invoiceInfo.number}</strong></td>
+                        <td>${window.formatDate(invoice.invoiceInfo.date)}</td>
+                        <td>${invoice.sellerInfo.name}</td>
+                        <td><code>${invoice.sellerInfo.taxCode}</code></td>
+                        <td class="text-right">${window.formatCurrency(invoice.summary.calculatedTotal)}</td>
+                        <td class="text-right">${window.formatCurrency(invoice.summary.calculatedTax)}</td>
+                        <td>${statusBadge}</td>
+                        <td>
+                            <div class="button-group-small">
+                                <button class="btn-sm btn-info" onclick="viewPurchaseInvoiceDetail('${invoice.originalFileId}')">👁️</button>
+                                <button class="btn-sm btn-warning" onclick="editPurchaseInvoice('${invoice.originalFileId}')">✏️</button>
+                                ${(!invoice.status || !invoice.status.stockPosted) ? 
+                                  `<button class="btn-sm btn-primary" onclick="createPurchaseReceipt('${invoice.originalFileId}')">📦</button>` : 
+                                  ''}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('')}
+        </tbody>
+    `;
+    tableContainer.appendChild(table);
+    
+    // === PHIÊN BẢN MOBILE (CARDS) ===
+    const cardsContainer = document.createElement('div');
+    cardsContainer.className = 'invoice-cards-container';
+    
+    const cardsGrid = document.createElement('div');
+    cardsGrid.className = 'invoice-cards-grid';
+    
     displayedInvoices.forEach((invoice, index) => {
-        const row = document.createElement('tr');
-        
         let statusBadge = '';
-        let statusClass = '';
+        let cardClass = '';
         
         if (invoice.status && invoice.status.stockPosted) {
             statusBadge = '<span class="badge badge-success">✅ Đã nhập kho</span>';
-            statusClass = 'table-success';
+            cardClass = 'success';
         } else if (invoice.status && invoice.status.validation === 'error') {
-            statusBadge = '<span class="badge badge-danger">❌ Lỗi</span>';
-            statusClass = 'table-danger';
+            statusBadge = '<span class="badge badge-danger">❌ Cần sửa</span>';
+            cardClass = 'error';
         } else {
             statusBadge = '<span class="badge badge-warning">⚠️ Chưa xử lý</span>';
-            statusClass = 'table-warning';
+            cardClass = 'warning';
         }
-
-        row.className = statusClass;
-        row.innerHTML = `
-            <td>${index + 1}</td>
-            <td><strong>${invoice.invoiceInfo.symbol}/${invoice.invoiceInfo.number}</strong></td>
-            <td>${window.formatDate(invoice.invoiceInfo.date)}</td>
-            <td>${invoice.sellerInfo.name}</td>
-            <td><code>${invoice.sellerInfo.taxCode}</code></td>
-            <td style="text-align: right;">${window.formatCurrency(invoice.summary.calculatedTotal)}</td>
-            <td style="text-align: right;">${window.formatCurrency(invoice.summary.calculatedTax)}</td>
-            <td>${statusBadge}</td>
-            <td>
-                <div class="button-group-small">
-                    <button class="btn-sm btn-info" onclick="viewPurchaseInvoiceDetail('${invoice.originalFileId}')">👁️</button>
-                    <button class="btn-sm btn-warning" onclick="editPurchaseInvoice('${invoice.originalFileId}')">✏️</button>
-                    ${(!invoice.status || !invoice.status.stockPosted) ? 
-                      `<button class="btn-sm btn-primary" onclick="createPurchaseReceipt('${invoice.originalFileId}')">📦</button>` : 
-                      ''}
+        
+        const card = document.createElement('div');
+        card.className = `invoice-card ${cardClass}`;
+        card.innerHTML = `
+            <!-- Header -->
+            <div class="card-header">
+                <div class="invoice-main-info">
+                    <div class="invoice-number">${invoice.invoiceInfo.symbol}/${invoice.invoiceInfo.number}</div>
+                    <div class="invoice-date">${window.formatDate(invoice.invoiceInfo.date)}</div>
                 </div>
-            </td>
+                <div class="invoice-status">
+                    ${statusBadge}
+                </div>
+            </div>
+            
+            <!-- Supplier Info -->
+            <div class="supplier-info">
+                <div class="supplier-name">${invoice.sellerInfo.name}</div>
+                <div class="supplier-tax">MST: ${invoice.sellerInfo.taxCode}</div>
+            </div>
+            
+            <!-- Amounts -->
+            <div class="amount-section">
+                <div class="amount-item">
+                    <div class="amount-label">Tổng tiền</div>
+                    <div class="amount-value">${window.formatCurrency(invoice.summary.calculatedTotal)}</div>
+                </div>
+                <div class="amount-item">
+                    <div class="amount-label">Thuế GTGT</div>
+                    <div class="amount-value tax-value">${window.formatCurrency(invoice.summary.calculatedTax)}</div>
+                </div>
+            </div>
+            
+            <!-- Actions -->
+            <div class="card-actions">
+                <button class="card-btn card-btn-info" onclick="viewPurchaseInvoiceDetail('${invoice.originalFileId}')">
+                    👁️ Xem
+                </button>
+                <button class="card-btn card-btn-warning" onclick="editPurchaseInvoice('${invoice.originalFileId}')">
+                    ✏️ Sửa
+                </button>
+                ${(!invoice.status || !invoice.status.stockPosted) ? 
+                  `<button class="card-btn card-btn-primary" onclick="createPurchaseReceipt('${invoice.originalFileId}')">
+                    📦 Nhập kho
+                   </button>` : 
+                  ''}
+            </div>
         `;
         
-        invoiceList.appendChild(row);
+        cardsGrid.appendChild(card);
     });
     
-    // HIỂN THỊ NÚT "XEM THÊM" NẾU CÒN NHIỀU HĐ
+    cardsContainer.appendChild(cardsGrid);
+    
+    // Thêm cả 2 phiên bản vào container
+    container.appendChild(tableContainer);
+    container.appendChild(cardsContainer);
+    invoiceList.appendChild(container);
+    
+    // Xem thêm button
     if (invoices.length > window.invoiceDisplayLimit) {
-        const remainingCount = invoices.length - window.invoiceDisplayLimit;
-        const loadMoreRow = document.createElement('tr');
-        loadMoreRow.innerHTML = `
-            <td colspan="9" style="text-align: center; padding: 15px;">
-                <button onclick="loadMoreInvoices()" class="btn btn-outline-primary btn-sm">
-                    📋 Xem thêm ${remainingCount} HĐ
-                </button>
-            </td>
+        const loadMoreDiv = document.createElement('div');
+        loadMoreDiv.className = 'load-more-container';
+        loadMoreDiv.innerHTML = `
+            <button onclick="loadMoreInvoices()" class="btn btn-outline-primary btn-sm load-more-btn">
+                📋 Xem thêm ${invoices.length - window.invoiceDisplayLimit} hóa đơn
+            </button>
         `;
-        invoiceList.appendChild(loadMoreRow);
-        
-        console.log(`🔍 Còn ${remainingCount} HĐ, hiển thị nút xem thêm`);
-    } else {
-        console.log(`✅ Đã hiển thị tất cả ${invoices.length} HĐ`);
+        invoiceList.appendChild(loadMoreDiv);
     }
 }
 
