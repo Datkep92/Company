@@ -2473,6 +2473,7 @@ window.payableDisplayLimit = 5;
 // =======================
 // RENDER BẢNG CÔNG NỢ ĐỒNG BỘ VỚI HÓA ĐƠN
 // =======================
+
 function renderSimpleFilteredPayable(suppliers) {
     const payableList = document.getElementById('payable-list');
     if (!payableList) return;
@@ -2486,11 +2487,16 @@ function renderSimpleFilteredPayable(suppliers) {
     
     const displayedSuppliers = suppliers.slice(0, window.payableDisplayLimit);
     
-    // === TẠO RESPONSIVE TABLE - HIỂN THỊ CẢ TRÊN PC VÀ MOBILE ===
-    const table = document.createElement('table');
-    table.className = 'table table-striped table-responsive';
-    table.style.width = '100%';
+    // Tạo container
+    const container = document.createElement('div');
+    container.className = 'table-modern-container';
     
+    // === CHỈ TẠO PHIÊN BẢN DESKTOP (TABLE) - XÓA MOBILE VERSION ===
+    const tableContainer = document.createElement('div');
+    tableContainer.className = 'payable-table-container';
+    
+    const table = document.createElement('table');
+    table.className = 'table-modern';
     table.innerHTML = `
         <thead>
             <tr>
@@ -2504,34 +2510,36 @@ function renderSimpleFilteredPayable(suppliers) {
         </thead>
         <tbody>
             ${displayedSuppliers.map((supplier, index) => {
-                const debtLevel = supplier.remaining > 0 ? 'table-warning' : '';
+                const debtLevel = supplier.remaining > 0 ? 'debt-warning' : 'debt-clear';
                 const debtStatus = supplier.remaining > 0 ? 'text-danger' : 'text-success';
                 
                 return `
                     <tr class="${debtLevel}">
                         <td>
-                            <div class="supplier-info">
+                            <div class="supplier-info-compact">
                                 <div class="supplier-name" style="cursor: pointer; color: #007bff; font-weight: 600;" 
                                      onclick="showSupplierHistory('${supplier.taxCode}')">
                                     ${supplier.name}
                                 </div>
-                                <small class="text-muted">${supplier.phone || 'Chưa có SĐT'}</small>
+                                <div class="supplier-contact">${supplier.phone || 'Chưa có SĐT'}</div>
                             </div>
                         </td>
-                        <td><code>${supplier.taxCode}</code></td>
-                        <td class="text-right">${window.formatCurrency(supplier.totalDebt)}</td>
-                        <td class="text-right">${window.formatCurrency(supplier.paid)}</td>
-                        <td class="text-right ${debtStatus}">
+                        <td><code class="tax-code">${supplier.taxCode}</code></td>
+                        <td class="text-right amount-total">${window.formatCurrency(supplier.totalDebt)}</td>
+                        <td class="text-right amount-paid">${window.formatCurrency(supplier.paid)}</td>
+                        <td class="text-right amount-remaining ${debtStatus}">
                             <strong>${window.formatCurrency(supplier.remaining)}</strong>
                         </td>
                         <td>
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-info" onclick="showSupplierHistory('${supplier.taxCode}')" title="Lịch sử">
-                                    📊
+                            <div class="button-group-modern">
+                                <button class="btn-modern btn-info" onclick="showSupplierHistory('${supplier.taxCode}')" title="Lịch sử giao dịch">
+                                    <span class="btn-icon">📊</span>
+                                    <span class="btn-text">Lịch sử</span>
                                 </button>
                                 ${supplier.remaining > 0 ? 
-                                  `<button class="btn btn-success" onclick="makePayment('${supplier.taxCode}')" title="Thanh toán">
-                                    💳
+                                  `<button class="btn-modern btn-success" onclick="makePayment('${supplier.taxCode}')" title="Thanh toán">
+                                    <span class="btn-icon">💳</span>
+                                    <span class="btn-text">Thanh toán</span>
                                   </button>` : 
                                   ''}
                             </div>
@@ -2541,15 +2549,21 @@ function renderSimpleFilteredPayable(suppliers) {
             }).join('')}
         </tbody>
     `;
+    tableContainer.appendChild(table);
     
-    payableList.appendChild(table);
+    // === XÓA HOÀN TOÀN PHẦN TẠO MOBILE VERSION ===
+    // KHÔNG tạo cardsContainer nữa
+    
+    // Chỉ thêm phiên bản desktop
+    container.appendChild(tableContainer);
+    payableList.appendChild(container);
     
     // Xem thêm
     if (suppliers.length > window.payableDisplayLimit) {
         const loadMoreDiv = document.createElement('div');
-        loadMoreDiv.className = 'load-more-container text-center mt-3';
+        loadMoreDiv.className = 'load-more-container';
         loadMoreDiv.innerHTML = `
-            <button onclick="loadMorePayable()" class="btn btn-outline-primary btn-sm">
+            <button onclick="loadMorePayable()" class="btn btn-outline-primary btn-sm load-more-btn">
                 📋 Xem thêm ${suppliers.length - window.payableDisplayLimit} NCC
             </button>
         `;

@@ -82,72 +82,31 @@ function addNewTag(taxCode, tag) {
     
     console.log('🏷️ Adding tag to company:', taxCode, tag);
     
-    ensureCompanyData(taxCode);
-    const company = window.hkdData[taxCode];
-    
-    // Thêm vào tags của công ty (nếu chưa có)
-    if (!company.tags.includes(tag)) {
-        company.tags.push(tag);
+    if (!window.hkdData[taxCode].tags) {
+        window.hkdData[taxCode].tags = [];
     }
     
-    // Thêm vào savedTags của công ty (nếu chưa có)
-    if (!company.savedTags.includes(tag)) {
-        company.savedTags.push(tag);
+    // Không thêm trùng
+    if (!window.hkdData[taxCode].tags.includes(tag)) {
+        window.hkdData[taxCode].tags.push(tag);
+        saveData();
+        console.log('✅ Tag added:', tag);
+        
+        // Refresh modal để hiển thị tag mới
+        showQuickTagModal(taxCode);
     }
-    
-    saveData();
-    console.log('✅ Tag added to company:', tag);
-    
-    // Refresh modal
-    showQuickTagModal(taxCode);
-    
-    // Refresh company list
-    renderCompanyList();
-    
-    showToast(`✅ Đã thêm thẻ "#${tag}" vào công ty`, 2000, 'success');
 }
 
 function removeTag(taxCode, tag) {
     console.log('🗑️ Removing tag from company:', taxCode, tag);
     
-    if (window.hkdData[taxCode]) {
-        const company = window.hkdData[taxCode];
-        
-        // Xóa khỏi tags của công ty
-        if (company.tags) {
-            company.tags = company.tags.filter(t => t !== tag);
-        }
-        
-        // Xóa khỏi savedTags của công ty
-        if (company.savedTags) {
-            company.savedTags = company.savedTags.filter(t => t !== tag);
-        }
-        
-        // Xóa tag khỏi tất cả notes của công ty
-        if (company.notes) {
-            company.notes.forEach(note => {
-                if (note.tags && Array.isArray(note.tags)) {
-                    note.tags = note.tags.filter(t => t !== tag);
-                }
-            });
-        }
-        
-        // Xóa tag khỏi tất cả reminders của công ty
-        if (company.reminders) {
-            company.reminders.forEach(reminder => {
-                if (reminder.tags && Array.isArray(reminder.tags)) {
-                    reminder.tags = reminder.tags.filter(t => t !== tag);
-                }
-            });
-        }
-        
+    if (window.hkdData[taxCode].tags) {
+        window.hkdData[taxCode].tags = window.hkdData[taxCode].tags.filter(t => t !== tag);
         saveData();
-        console.log('✅ Tag removed from company:', tag);
+        console.log('✅ Tag removed:', tag);
         
         // Refresh modal
         showQuickTagModal(taxCode);
-        // Refresh company list để cập nhật hiển thị
-        renderCompanyList();
     }
 }
 
@@ -214,143 +173,7 @@ function updateCompanyTags(taxCode) {
     window.hkdData[taxCode].tags = uniqueTags;
     saveData();
 }
-function removeTagFromCompanyInNoteModal(taxCode, tag) {
-    console.log('🗑️ Removing tag from company in note modal:', taxCode, tag);
-    
-    if (window.hkdData[taxCode]) {
-        const company = window.hkdData[taxCode];
-        
-        // Xóa khỏi savedTags
-        if (company.savedTags) {
-            company.savedTags = company.savedTags.filter(t => t !== tag);
-        }
-        
-        // Xóa khỏi tags
-        if (company.tags) {
-            company.tags = company.tags.filter(t => t !== tag);
-        }
-        
-        // Xóa khỏi selected tags nếu có
-        if (window.selectedNoteTags && window.selectedNoteTags.has(tag)) {
-            window.selectedNoteTags.delete(tag);
-        }
-        
-        // Xóa tag khỏi tất cả notes của công ty
-        if (company.notes) {
-            company.notes.forEach(note => {
-                if (note.tags && Array.isArray(note.tags)) {
-                    note.tags = note.tags.filter(t => t !== tag);
-                }
-            });
-        }
-        
-        // Xóa tag khỏi tất cả reminders của công ty
-        if (company.reminders) {
-            company.reminders.forEach(reminder => {
-                if (reminder.tags && Array.isArray(reminder.tags)) {
-                    reminder.tags = reminder.tags.filter(t => t !== tag);
-                }
-            });
-        }
-        
-        saveData();
-        console.log('✅ Tag removed from company in note modal:', tag);
-        
-        // Refresh hiển thị
-        updateCompanySavedTagsDisplay(taxCode);
-        updateSelectedTagsDisplay();
-        updateTagHighlights();
-        
-        showToast(`✅ Đã xóa thẻ "#${tag}" khỏi công ty`, 2000, 'success');
-    }
-}
-function showGlobalTagManager() {
-    const allTags = getAllGlobalTags();
-    
-    const modalContent = `
-        <div class="global-tag-manager">
-            <h4 style="margin-bottom: 15px; color: #1976d3;">🌐 Quản Lý Thẻ Toàn Hệ Thống</h4>
-            
-            <div style="background: #fff3cd; padding: 12px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #ffeaa7;">
-                <p style="margin: 0; color: #856404; font-size: 13px;">
-                    <strong>⚠️ Cảnh báo:</strong> Xóa thẻ ở đây sẽ xóa khỏi TOÀN BỘ hệ thống (tất cả công ty, ghi chú, nhắc nhở)
-                </p>
-            </div>
-            
-            <div id="global-tags-list" style="max-height: 400px; overflow-y: auto;">
-                ${allTags.length > 0 ? 
-                    allTags.map(tag => `
-                        <div class="global-tag-item-manager" style="display: flex; justify-content: space-between; align-items: center; padding: 10px; margin-bottom: 8px; background: #f8f9fa; border-radius: 6px; border: 1px solid #e9ecef;">
-                            <div>
-                                <span style="font-weight: 600; color: #333; font-size: 14px;">#${tag}</span>
-                                <div style="font-size: 11px; color: #666; margin-top: 2px;">
-                                    ${countTagUsage(tag)} công ty sử dụng
-                                </div>
-                            </div>
-                            <div style="display: flex; gap: 8px;">
-                                <button onclick="removeGlobalTag('${tag}')" 
-                                        class="btn-danger" 
-                                        style="padding: 6px 12px; font-size: 12px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                                    🗑️ Xóa toàn hệ thống
-                                </button>
-                            </div>
-                        </div>
-                    `).join('') :
-                    '<div style="text-align: center; padding: 20px; color: #666;">Chưa có thẻ nào trong hệ thống</div>'
-                }
-            </div>
-            
-            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
-                <button onclick="closeModal()" class="btn-secondary" style="padding: 8px 16px;">✅ Đóng</button>
-            </div>
-        </div>
-    `;
-    
-    showModal('Quản Lý Thẻ Toàn Hệ Thống', modalContent);
-}
-function countTagUsage(tag) {
-    let count = 0;
-    
-    Object.values(window.hkdData).forEach(company => {
-        let found = false;
-        
-        // Kiểm tra trong tags
-        if (company.tags && company.tags.includes(tag)) {
-            found = true;
-        }
-        
-        // Kiểm tra trong savedTags
-        if (!found && company.savedTags && company.savedTags.includes(tag)) {
-            found = true;
-        }
-        
-        // Kiểm tra trong notes
-        if (!found && company.notes) {
-            for (const note of company.notes) {
-                if (note.tags && note.tags.includes(tag)) {
-                    found = true;
-                    break;
-                }
-            }
-        }
-        
-        // Kiểm tra trong reminders
-        if (!found && company.reminders) {
-            for (const reminder of company.reminders) {
-                if (reminder.tags && reminder.tags.includes(tag)) {
-                    found = true;
-                    break;
-                }
-            }
-        }
-        
-        if (found) {
-            count++;
-        }
-    });
-    
-    return count;
-}
+
 function showQuickNoteModal(taxCode) {
     console.log('🎪 OPENING NOTE MODAL FOR:', taxCode);
     
@@ -360,10 +183,9 @@ function showQuickNoteModal(taxCode) {
         return;
     }
     
-    // Lấy danh sách thẻ toàn cục VÀ thẻ đã lưu của công ty
+    // Lấy danh sách thẻ toàn cục
     const globalTags = getAllGlobalTags();
-    const companySavedTags = company.savedTags || [];
-
+    
     const modalContent = `
         <div class="quick-note-modal">
             <h4 style="margin-bottom: 15px; color: #1976d3;">📝 Thêm ghi chú cho ${company.name}</h4>
@@ -372,55 +194,25 @@ function showQuickNoteModal(taxCode) {
                 <textarea id="quick-note-content" placeholder="Nội dung ghi chú..." rows="4" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; resize: vertical;"></textarea>
             </div>
             
-            <!-- PHẦN QUẢN LÝ THẺ - ĐÃ THÊM NÚT XÓA/GỠ THẺ -->
             <div class="form-group" style="margin-bottom: 15px;">
                 <label style="display: block; margin-bottom: 8px; font-weight: bold;">🏷️ Quản lý thẻ:</label>
                 
-                <!-- THẺ ĐÃ LƯU CỦA CÔNG TY - CÓ NÚT XÓA -->
-                <div style="margin-bottom: 10px;">
-                    <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #666;">Thẻ đã lưu của công ty:</label>
-                    <div id="company-saved-tags" style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; min-height: 30px; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; background: #f8f9fa;">
-                        ${companySavedTags.length > 0 ? 
-                            companySavedTags.map(tag => `
-                                <span class="saved-tag-choice" data-tag="${tag}" 
-                                      style="background: ${window.selectedNoteTags.has(tag) ? '#2196f3' : '#4caf50'}; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 3px;"
-                                      onclick="toggleSavedTagSelection('${tag}')">
-                                    #${tag}
-                                    <span class="remove-saved-tag" onclick="event.stopPropagation(); removeTagFromCompanyInNoteModal('${taxCode}', '${tag}')" 
-                                          style="cursor: pointer; margin-left: 3px; font-size: 10px; color: white; background: rgba(0,0,0,0.2); border-radius: 50%; width: 14px; height: 14px; display: inline-flex; align-items: center; justify-content: center; line-height: 1;">
-                                        ×
-                                    </span>
-                                </span>
-                            `).join('') : 
-                            '<em style="color: #999; font-size: 12px;">Chưa có thẻ nào được lưu</em>'
-                        }
-                    </div>
-                </div>
-                
-                <!-- THÊM THẺ MỚI VÀ LƯU -->
+                <!-- Input thêm thẻ mới -->
                 <div style="display: flex; gap: 8px; margin-bottom: 10px;">
-                    <input type="text" id="new-tag-input" placeholder="Thêm thẻ mới và lưu..." style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                    <button onclick="addNewTagAndSave('${taxCode}')" class="btn-success" style="padding: 8px 12px;">➕ Thêm & Lưu</button>
+                    <input type="text" id="new-global-tag-input" placeholder="Thêm thẻ mới..." style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <button onclick="addGlobalTagFromInput()" class="btn-success" style="padding: 8px 12px;">➕ Thêm</button>
                 </div>
                 
-                <!-- THẺ TOÀN CỤC - CÓ NÚT XÓA TOÀN HỆ THỐNG -->
-                <div style="margin-bottom: 10px;">
-                    <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 5px;">
-                        <label style="font-size: 13px; color: #666;">Thẻ toàn cục:</label>
-                        <button onclick="showGlobalTagManager()" class="btn-small" style="padding: 2px 6px; font-size: 10px; background: #ff9800; color: white; border: none; border-radius: 3px; cursor: pointer;">
-                            🗑️ Quản lý thẻ hệ thống
-                        </button>
-                    </div>
-                    <div id="global-tags-container" style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; min-height: 40px; max-height: 120px; overflow-y: auto; padding: 8px; border: 1px solid #eee; border-radius: 4px;">
-                        ${renderGlobalTagsForNote(globalTags)}
-                    </div>
+                <!-- Danh sách thẻ hiện có -->
+                <div id="global-tags-container" style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; min-height: 40px; max-height: 120px; overflow-y: auto; padding: 8px; border: 1px solid #eee; border-radius: 4px;">
+                    ${renderGlobalTags(globalTags)}
                 </div>
                 
-                <!-- THẺ ĐÃ CHỌN - CÓ NÚT XÓA -->
+                <!-- Thẻ đã chọn -->
                 <div>
-                    <label style="display: block; margin-bottom: 5px; font-size: 13px; font-weight: bold;">Thẻ đã chọn cho ghi chú:</label>
-                    <div id="selected-tags-display" style="min-height: 40px; padding: 10px; border: 2px dashed #4caf50; border-radius: 4px; background: #f8fff9;">
-                        ${renderSelectedTagsWithRemove()}
+                    <label style="display: block; margin-bottom: 5px; font-size: 13px;">Thẻ đã chọn:</label>
+                    <div id="selected-tags-display" style="min-height: 30px; padding: 5px; border: 1px dashed #ddd; border-radius: 4px;">
+                        <em style="color: #999;">Chưa chọn thẻ nào</em>
                     </div>
                 </div>
             </div>
@@ -433,305 +225,102 @@ function showQuickNoteModal(taxCode) {
                 </div>
             </div>
             
-            // Trong hàm showQuickNoteModal, sửa phần modal actions:
-<div class="modal-actions" style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #eee; padding-top: 15px;">
-    <button onclick="closeModalWithoutSave()" class="btn-secondary" style="padding: 8px 16px;">❌ Đóng</button>
-    <button onclick="saveQuickNoteWithTags('${taxCode}')" class="btn-success" style="padding: 8px 16px;">💾 Lưu</button>
-</div>
+            <div class="modal-actions" style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #eee; padding-top: 15px;">
+                <button onclick="closeModal()" class="btn-secondary" style="padding: 8px 16px;">❌ Hủy</button>
+                <button id="save-quick-note" class="btn-success" style="padding: 8px 16px;">💾 Lưu ghi chú</button>
+            </div>
+        </div>
     `;
     
-    showModal('Thêm Ghi Chú - Gán Thẻ', modalContent);
+    showModal('Thêm Ghi Chú Nhanh', modalContent);
     
-    // Reset selected tags khi mở modal
-    window.selectedNoteTags = new Set();
-}
-
-// Hàm render thẻ đã chọn với nút xóa
-function renderSelectedTagsWithRemove() {
-    if (!window.selectedNoteTags || window.selectedNoteTags.size === 0) {
-        return '<em style="color: #999;">Chưa chọn thẻ nào</em>';
-    }
-    
-    return Array.from(window.selectedNoteTags).map(tag => `
-        <span class="selected-tag-item" style="background: #4caf50; color: white; padding: 5px 10px; border-radius: 15px; font-size: 12px; display: inline-flex; align-items: center; gap: 5px; margin: 2px; font-weight: bold;">
-            #${tag}
-            <span class="remove-selected-tag" onclick="removeSelectedTag('${tag}')" 
-                  style="cursor: pointer; margin-left: 3px; font-size: 14px; color: white; background: rgba(0,0,0,0.2); border-radius: 50%; width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; line-height: 1;">
-                ×
-            </span>
-        </span>
-    `).join('');
-}
-
-// Hàm xóa thẻ đã chọn
-function removeSelectedTag(tag) {
-    if (window.selectedNoteTags.has(tag)) {
-        window.selectedNoteTags.delete(tag);
-        updateSelectedTagsDisplay();
-        updateTagHighlights();
-    }
-}
-
-// Cập nhật highlight cho thẻ
-function updateTagHighlights() {
-    // Cập nhật thẻ đã lưu
-    const savedTags = document.querySelectorAll('.saved-tag-choice');
-    savedTags.forEach(element => {
-        const tag = element.getAttribute('data-tag');
-        if (window.selectedNoteTags.has(tag)) {
-            element.style.background = '#2196f3';
-        } else {
-            element.style.background = '#4caf50';
-        }
-    });
-    
-    // Cập nhật thẻ toàn cục
-    const globalTags = document.querySelectorAll('.global-tag-item');
-    globalTags.forEach(element => {
-        const tag = element.getAttribute('data-tag');
-        if (window.selectedNoteTags.has(tag)) {
-            element.style.background = '#2196f3';
-            element.style.color = 'white';
-        } else {
-            element.style.background = '#e3f2fd';
-            element.style.color = '#1976d2';
-        }
-    });
-}
-
-// Sửa hàm toggle để cập nhật highlight
-function toggleSavedTagSelection(tag) {
-    if (window.selectedNoteTags.has(tag)) {
-        window.selectedNoteTags.delete(tag);
-    } else {
-        window.selectedNoteTags.add(tag);
-    }
-    updateSelectedTagsDisplay();
-    updateTagHighlights();
-}
-
-// Sửa hàm updateSelectedTagsDisplay
-function updateSelectedTagsDisplay() {
-    const display = document.getElementById('selected-tags-display');
-    if (!display) return;
-    
-    display.innerHTML = renderSelectedTagsWithRemove();
-}
-
-// Biến toàn cục để lưu thẻ đã chọn
-window.selectedNoteTags = new Set();
-
-// Thêm thẻ mới và lưu vào công ty
-function addNewTagAndSave(taxCode) {
-    const input = document.getElementById('new-tag-input');
-    const tag = input.value.trim();
-    
-    if (!tag) {
-        alert('Vui lòng nhập tên thẻ');
-        return;
-    }
-    
-    // Thêm vào thẻ đã chọn
-    toggleSavedTagSelection(tag);
-    
-    // Lưu thẻ vào công ty
-    ensureCompanyData(taxCode);
-    const company = window.hkdData[taxCode];
-    
-    if (!company.savedTags) {
-        company.savedTags = [];
-    }
-    
-    if (!company.savedTags.includes(tag)) {
-        company.savedTags.push(tag);
-        saveData();
-        
-        // Cập nhật hiển thị thẻ đã lưu
-        updateCompanySavedTagsDisplay(taxCode);
-    }
-    
-    input.value = '';
-    showToast('✅ Đã thêm và lưu thẻ mới', 2000, 'success');
-}
-
-function updateCompanySavedTagsDisplay(taxCode) {
-    const company = window.hkdData[taxCode];
-    const container = document.getElementById('company-saved-tags');
-    
-    if (container && company.savedTags) {
-        container.innerHTML = company.savedTags.map(tag => `
-            <span class="saved-tag-choice" data-tag="${tag}" 
-                  style="background: ${window.selectedNoteTags.has(tag) ? '#2196f3' : '#4caf50'}; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 3px;"
-                  onclick="toggleSavedTagSelection('${tag}')">
-                #${tag}
-                <span class="remove-saved-tag" onclick="event.stopPropagation(); removeTagFromCompanyInNoteModal('${taxCode}', '${tag}')" 
-                      style="cursor: pointer; margin-left: 3px; font-size: 10px; color: white; background: rgba(0,0,0,0.2); border-radius: 50%; width: 14px; height: 14px; display: inline-flex; align-items: center; justify-content: center; line-height: 1;">
-                    ×
-                </span>
-            </span>
-        `).join('') || '<em style="color: #999; font-size: 12px;">Chưa có thẻ nào được lưu</em>';
-    }
-}
-function showRemoveGlobalTagConfirm(tag) {
-    const usageCount = countTagUsage(tag);
-    
-    if (confirm(`Bạn có chắc muốn xóa thẻ "#${tag}" khỏi TOÀN BỘ HỆ THỐNG?\n\n⚠️ Thao tác này sẽ:\n• Xóa khỏi ${usageCount} công ty\n• Xóa khỏi tất cả ghi chú\n• Xóa khỏi tất cả nhắc nhở\n• KHÔNG THỂ HOÀN TÁC!`)) {
-        removeGlobalTag(tag);
-    }
-}
-// Render thẻ toàn cục cho ghi chú
-function renderGlobalTagsForNote(tags) {
-    if (tags.length === 0) {
-        return '<div style="color: #999; text-align: center; width: 100%;">Chưa có thẻ toàn cục nào</div>';
-    }
-    
-    return tags.map(tag => `
-        <span class="global-tag-item" data-tag="${tag}" 
-              style="background: ${window.selectedNoteTags.has(tag) ? '#2196f3' : '#e3f2fd'}; color: ${window.selectedNoteTags.has(tag) ? 'white' : '#1976d2'}; padding: 4px 8px; border-radius: 12px; display: inline-flex; align-items: center; gap: 5px; cursor: pointer; font-size: 12px;"
-              onclick="toggleSavedTagSelection('${tag}')">
-            #${tag}
-            <span class="remove-global-tag" onclick="event.stopPropagation(); showRemoveGlobalTagConfirm('${tag}')" 
-                  style="color: #f44336; cursor: pointer; font-size: 10px; margin-left: 3px; background: rgba(0,0,0,0.1); border-radius: 50%; width: 14px; height: 14px; display: inline-flex; align-items: center; justify-content: center;">
-                ×
-            </span>
-        </span>
-    `).join('');
-}
-
-function saveQuickNoteWithTags(taxCode) {
-    const content = document.getElementById('quick-note-content')?.value.trim();
-    const tags = Array.from(window.selectedNoteTags);
-    
-    // CHO PHÉP LƯU CHỈ CÓ THẺ, KHÔNG CẦN GHÍ CHÚ - VÀ CŨNG CHO PHÉP KHÔNG CÓ GÌ
-    if (!content && tags.length === 0) {
-        // Nếu không có gì để lưu, chỉ đóng modal
-        console.log('📝 No content or tags to save, closing modal');
-        
-        // Reset selected tags
-        window.selectedNoteTags.clear();
-        
-        closeModal();
-        return;
-    }
-    
-    console.log('💾 Saving note/tags for company:', taxCode);
-    
-    ensureCompanyData(taxCode);
-    const company = window.hkdData[taxCode];
-    
-    // NẾU CÓ GHÍ CHÚ, TẠO NOTE MỚI
-    if (content) {
-        // Khởi tạo notes nếu chưa có
-        if (!company.notes) {
-            company.notes = [];
-        }
-        
-        // Tạo note mới
-        const newNote = {
-            id: 'note_' + Date.now(),
-            content: content,
-            tags: tags,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            status: 'pending',
-            type: 'quick'
-        };
-        
-        // Thêm reminder nếu có
-        const reminderDate = document.getElementById('reminder-date')?.value;
-        const reminderTime = document.getElementById('reminder-time')?.value;
-        
-        if (reminderDate) {
-            const reminderId = 'reminder_' + Date.now();
-            const newReminder = {
-                id: reminderId,
-                title: `Nhắc: ${content.substring(0, 30)}${content.length > 30 ? '...' : ''}`,
-                description: content,
-                dueDate: reminderDate,
-                dueTime: reminderTime || '09:00',
-                priority: 'medium',
-                status: 'pending',
-                tags: tags,
-                noteId: newNote.id,
-                createdAt: new Date().toISOString()
-            };
-            
-            if (!company.reminders) company.reminders = [];
-            company.reminders.push(newReminder);
-            newNote.reminderId = reminderId;
-        }
-        
-        company.notes.push(newNote);
-    }
-    
-    // LUÔN CẬP NHẬT TAGS CỦA CÔNG TY (dù có ghi chú hay không)
-    if (tags.length > 0) {
-        if (!company.savedTags) {
-            company.savedTags = [];
-        }
-        
-        tags.forEach(tag => {
-            if (!company.savedTags.includes(tag)) {
-                company.savedTags.push(tag);
-            }
+    // Xử lý sự kiện lưu
+    const saveBtn = document.getElementById('save-quick-note');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', function() {
+            saveQuickNoteWithGlobalTags(taxCode);
         });
     }
+}
+
+function showQuickNoteModal(taxCode) {
+    console.log('🎪 OPENING NOTE MODAL FOR:', taxCode);
     
-    saveData();
+    const company = window.hkdData[taxCode];
+    if (!company) {
+        console.error('❌ Company not found:', taxCode);
+        return;
+    }
     
-    // Reset selected tags
-    window.selectedNoteTags.clear();
+    // Lấy danh sách thẻ toàn cục
+    const globalTags = getAllGlobalTags();
     
-    closeModal();
-    renderCompanyList();
+    const modalContent = `
+        <div class="quick-note-modal">
+            <h4 style="margin-bottom: 15px; color: #1976d3;">📝 Thêm ghi chú cho ${company.name}</h4>
+            
+            <div class="form-group" style="margin-bottom: 15px;">
+                <textarea id="quick-note-content" placeholder="Nội dung ghi chú..." rows="4" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; resize: vertical;"></textarea>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: bold;">🏷️ Quản lý thẻ:</label>
+                
+                <!-- Input thêm thẻ mới -->
+                <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                    <input type="text" id="new-global-tag-input" placeholder="Thêm thẻ mới..." style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <button onclick="addGlobalTagFromInput()" class="btn-success" style="padding: 8px 12px;">➕ Thêm</button>
+                </div>
+                
+                <!-- Danh sách thẻ hiện có -->
+                <div id="global-tags-container" style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; min-height: 40px; max-height: 120px; overflow-y: auto; padding: 8px; border: 1px solid #eee; border-radius: 4px;">
+                    ${renderGlobalTags(globalTags)}
+                </div>
+                
+                <!-- Thẻ đã chọn -->
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-size: 13px;">Thẻ đã chọn:</label>
+                    <div id="selected-tags-display" style="min-height: 30px; padding: 5px; border: 1px dashed #ddd; border-radius: 4px;">
+                        <em style="color: #999;">Chưa chọn thẻ nào</em>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: bold;">⏰ Nhắc nhở:</label>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="date" id="reminder-date" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <input type="time" id="reminder-time" value="09:00" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+            </div>
+            
+            <div class="modal-actions" style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #eee; padding-top: 15px;">
+                <button onclick="closeModal()" class="btn-secondary" style="padding: 8px 16px;">❌ Hủy</button>
+                <button id="save-quick-note" class="btn-success" style="padding: 8px 16px;">💾 Lưu ghi chú</button>
+            </div>
+        </div>
+    `;
     
-    console.log('✅ Note/tags saved successfully!');
+    showModal('Thêm Ghi Chú Nhanh', modalContent);
     
-    // Hiển thị thông báo phù hợp
-    if (content && tags.length > 0) {
-        showToast('✅ Đã lưu ghi chú và thẻ thành công!', 2000, 'success');
-    } else if (content) {
-        showToast('✅ Đã lưu ghi chú thành công!', 2000, 'success');
-    } else if (tags.length > 0) {
-        showToast('✅ Đã lưu thẻ thành công!', 2000, 'success');
-    } else {
-        showToast('✅ Đã đóng popup', 1500, 'info');
+    // Xử lý sự kiện lưu
+    const saveBtn = document.getElementById('save-quick-note');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', function() {
+            saveQuickNoteWithGlobalTags(taxCode);
+        });
     }
 }
+
 function getAllGlobalTags() {
+    // Lấy tất cả thẻ từ tất cả công ty và gộp lại
     const allTags = new Set();
-    
     Object.values(window.hkdData).forEach(company => {
-        // Thêm tags từ tags của công ty
         if (company.tags) {
             company.tags.forEach(tag => allTags.add(tag));
         }
-        
-        // Thêm tags từ savedTags của công ty
-        if (company.savedTags) {
-            company.savedTags.forEach(tag => allTags.add(tag));
-        }
-        
-        // Thêm tags từ notes
-        if (company.notes) {
-            company.notes.forEach(note => {
-                if (note.tags) {
-                    note.tags.forEach(tag => allTags.add(tag));
-                }
-            });
-        }
-        
-        // Thêm tags từ reminders
-        if (company.reminders) {
-            company.reminders.forEach(reminder => {
-                if (reminder.tags) {
-                    reminder.tags.forEach(tag => allTags.add(tag));
-                }
-            });
-        }
     });
-    
-    return Array.from(allTags).sort();
+    return Array.from(allTags);
 }
 let selectedTags = new Set();
 
@@ -744,7 +333,20 @@ function toggleTagSelection(tag) {
     updateSelectedTagsDisplay();
 }
 
-
+function updateSelectedTagsDisplay() {
+    const display = document.getElementById('selected-tags-display');
+    if (!display) return;
+    
+    if (selectedTags.size === 0) {
+        display.innerHTML = '<em style="color: #999;">Chưa chọn thẻ nào</em>';
+    } else {
+        display.innerHTML = Array.from(selectedTags).map(tag => `
+            <span style="background: #4caf50; color: white; padding: 3px 8px; border-radius: 10px; font-size: 12px; display: inline-block; margin: 2px;">
+                #${tag}
+            </span>
+        `).join('');
+    }
+}
 
 function addGlobalTagFromInput() {
     const input = document.getElementById('new-global-tag-input');
@@ -845,74 +447,27 @@ function saveQuickNoteWithGlobalTags(taxCode) {
     showToast('✅ Đã thêm ghi chú thành công!', 2000, 'success');
 }
 function removeGlobalTag(tag) {
-    if (confirm(`Bạn có chắc muốn xóa thẻ "#${tag}" khỏi TOÀN BỘ HỆ THỐNG?\n\nThao tác này sẽ xóa thẻ khỏi tất cả công ty, ghi chú và nhắc nhở.`)) {
-        console.log('🗑️ Removing global tag from system:', tag);
-        
-        let removedCount = 0;
-        
+    if (confirm(`Bạn có chắc muốn xóa thẻ "#${tag}" khỏi hệ thống?`)) {
         // Xóa thẻ khỏi tất cả công ty
         Object.values(window.hkdData).forEach(company => {
-            // Xóa khỏi tags
             if (company.tags) {
-                const before = company.tags.length;
                 company.tags = company.tags.filter(t => t !== tag);
-                const after = company.tags.length;
-                if (before !== after) removedCount++;
-            }
-            
-            // Xóa khỏi savedTags
-            if (company.savedTags) {
-                const before = company.savedTags.length;
-                company.savedTags = company.savedTags.filter(t => t !== tag);
-                const after = company.savedTags.length;
-                if (before !== after) removedCount++;
-            }
-            
-            // Xóa khỏi tất cả notes
-            if (company.notes) {
-                company.notes.forEach(note => {
-                    if (note.tags && Array.isArray(note.tags)) {
-                        const before = note.tags.length;
-                        note.tags = note.tags.filter(t => t !== tag);
-                        const after = note.tags.length;
-                        if (before !== after) removedCount++;
-                    }
-                });
-            }
-            
-            // Xóa khỏi tất cả reminders
-            if (company.reminders) {
-                company.reminders.forEach(reminder => {
-                    if (reminder.tags && Array.isArray(reminder.tags)) {
-                        const before = reminder.tags.length;
-                        reminder.tags = reminder.tags.filter(t => t !== tag);
-                        const after = reminder.tags.length;
-                        if (before !== after) removedCount++;
-                    }
-                });
             }
         });
-        
         saveData();
         
-        console.log(`✅ Global tag removed: ${tag} (${removedCount} occurrences)`);
-        
-        // Refresh tất cả UI
-        const currentModal = document.getElementById('custom-modal');
-        if (currentModal) {
-            const modalTitle = currentModal.querySelector('h3');
-            if (modalTitle && modalTitle.textContent.includes('Thẻ')) {
-                closeModal();
-            }
+        // Refresh hiển thị
+        const container = document.getElementById('global-tags-container');
+        if (container) {
+            const globalTags = getAllGlobalTags();
+            container.innerHTML = renderGlobalTags(globalTags);
         }
         
-        // Update tag filter options
-        updateTagFilterOptions();
+        // Xóa khỏi selected tags nếu có
+        selectedTags.delete(tag);
+        updateSelectedTagsDisplay();
         
-        // Refresh company list
-        renderCompanyList();
-        
-        showToast(`✅ Đã xóa thẻ "#${tag}" khỏi toàn hệ thống (${removedCount} vị trí)`, 3000, 'success');
+        showToast(`✅ Đã xóa thẻ "#${tag}"`, 2000, 'success');
     }
 }
 function renderGlobalTags(tags) {
@@ -930,104 +485,45 @@ function renderGlobalTags(tags) {
         </span>
     `).join('');
 }
-function renderGlobalTagsManagement() {
-    const allGlobalTags = getAllGlobalTags();
-    
-    if (allGlobalTags.length === 0) {
-        return '<div style="color: #666; text-align: center; padding: 10px;">Chưa có thẻ nào trong hệ thống</div>';
-    }
-    
-    return allGlobalTags.map(tag => `
-        <div class="global-tag-management-item" style="display: flex; justify-content: space-between; align-items: center; padding: 8px; margin-bottom: 5px; background: #f8f9fa; border-radius: 4px;">
-            <span style="font-weight: 500; color: #333;">#${tag}</span>
-            <div style="display: flex; gap: 5px;">
-                <button onclick="removeGlobalTag('${tag}')" 
-                        class="btn-danger" 
-                        style="padding: 4px 8px; font-size: 11px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer;">
-                    🗑️ Xóa toàn hệ thống
-                </button>
-            </div>
-        </div>
-    `).join('');
-}
-/*
+
 function showQuickTagModal(taxCode) {
     console.log('🎪 OPENING TAG MODAL FOR:', taxCode);
     
     const company = window.hkdData[taxCode];
-    if (!company) {
-        console.error('❌ Company not found:', taxCode);
-        return;
-    }
-    
     const currentTags = company.tags || [];
-    const savedTags = company.savedTags || [];
     
     const modalContent = `
         <div class="quick-tag-modal">
-            <h4 style="margin-bottom: 15px; color: #1976d3;">🏷️ Quản Lý Thẻ - ${company.name}</h4>
-            
-            <!-- THẺ HIỆN TẠI CỦA CÔNG TY -->
-            <div class="form-group" style="margin-bottom: 20px;">
-                <label style="display: block; margin-bottom: 8px; font-weight: bold;">📌 Thẻ đang gán cho công ty:</label>
-                <div id="current-tags" style="margin: 10px 0; min-height: 40px; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; background: #f8f9fa;">
+            <h4>🏷️ Gán thẻ cho ${company.name}</h4>
+            <div class="form-group">
+                <label>Thẻ hiện tại:</label>
+                <div id="current-tags" style="margin: 10px 0; min-height: 30px;">
                     ${currentTags.length > 0 ? 
                         currentTags.map(tag => `
-                            <span class="tag-item" style="display: inline-block; background: #4caf50; color: white; padding: 6px 12px; margin: 4px; border-radius: 15px; font-size: 13px;">
+                            <span class="tag-item" style="display: inline-block; background: #e3f2fd; padding: 4px 8px; margin: 2px; border-radius: 12px;">
                                 #${tag}
-                                <span class="remove-tag" data-tag="${tag}" 
-                                      onclick="removeTag('${taxCode}', '${tag}')" 
-                                      style="cursor: pointer; margin-left: 8px; color: white; background: rgba(0,0,0,0.2); border-radius: 50%; width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px;">
-                                    ×
-                                </span>
+                                <span class="remove-tag" data-tag="${tag}" style="cursor: pointer; margin-left: 5px; color: red;">×</span>
                             </span>
                         `).join('') : 
-                        '<div style="color: #666; text-align: center; padding: 10px;">Chưa có thẻ nào được gán</div>'
+                        '<em>Chưa có thẻ nào</em>'
                     }
                 </div>
-                <small style="color: #666;">Click × để xóa thẻ khỏi công ty này</small>
             </div>
-            
-            <!-- THẺ ĐÃ LƯU CỦA CÔNG TY -->
-            <div class="form-group" style="margin-bottom: 20px;">
-                <label style="display: block; margin-bottom: 8px; font-weight: bold;">💾 Thẻ đã lưu của công ty:</label>
-                <div id="saved-tags" style="margin: 10px 0; min-height: 40px; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; background: #f8fff9;">
-                    ${savedTags.length > 0 ? 
-                        savedTags.map(tag => `
-                            <span class="saved-tag-item" style="display: inline-block; background: #2196f3; color: white; padding: 6px 12px; margin: 4px; border-radius: 15px; font-size: 13px;">
-                                #${tag}
-                                <span class="remove-saved-tag" data-tag="${tag}" 
-                                      onclick="removeTag('${taxCode}', '${tag}')" 
-                                      style="cursor: pointer; margin-left: 8px; color: white; background: rgba(0,0,0,0.2); border-radius: 50%; width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px;">
-                                    ×
-                                </span>
-                            </span>
-                        `).join('') : 
-                        '<div style="color: #666; text-align: center; padding: 10px;">Chưa có thẻ nào được lưu</div>'
-                    }
+            <div class="form-group">
+                <label>Thêm thẻ mới:</label>
+                <input type="text" id="new-tag-input" placeholder="Nhập thẻ mới..." style="padding: 8px; width: 100%;">
+                <small style="color: #666;">Enter để thêm</small>
+            </div>
+            <div class="suggested-tags">
+                <strong>Thẻ đề xuất:</strong>
+                <div class="tag-suggestions" style="margin: 10px 0;">
+                    <span class="tag-suggestion" data-tag="urgent" style="cursor: pointer; background: #ffebee; padding: 4px 8px; margin: 2px; border-radius: 8px; display: inline-block;">urgent</span>
+                    <span class="tag-suggestion" data-tag="congno" style="cursor: pointer; background: #e8f5e8; padding: 4px 8px; margin: 2px; border-radius: 8px; display: inline-block;">congno</span>
+                    <span class="tag-suggestion" data-tag="quantrong" style="cursor: pointer; background: #e3f2fd; padding: 4px 8px; margin: 2px; border-radius: 8px; display: inline-block;">quantrong</span>
                 </div>
-                <small style="color: #666;">Thẻ đã lưu có thể dùng cho nhiều ghi chú</small>
             </div>
-            
-            <!-- THÊM THẺ MỚI -->
-            <div class="form-group" style="margin-bottom: 20px;">
-                <label style="display: block; margin-bottom: 8px; font-weight: bold;">➕ Thêm thẻ mới:</label>
-                <input type="text" id="new-tag-input" placeholder="Nhập tên thẻ mới..." 
-                       style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px;">
-                <small style="color: #666;">Enter để thêm thẻ vào công ty</small>
-            </div>
-            
-            <!-- QUẢN LÝ THẺ TOÀN HỆ THỐNG -->
-            <div class="form-group" style="margin-bottom: 20px; padding: 15px; background: #fff3cd; border-radius: 6px; border: 1px solid #ffeaa7;">
-                <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #856404;">🌐 Quản lý thẻ toàn hệ thống:</label>
-                <div id="global-tags-management" style="max-height: 150px; overflow-y: auto; margin: 10px 0; padding: 10px; background: white; border-radius: 4px; border: 1px solid #ddd;">
-                    ${renderGlobalTagsManagement()}
-                </div>
-                <small style="color: #856404;">Xóa thẻ khỏi toàn bộ hệ thống (tất cả công ty)</small>
-            </div>
-            
-            <div class="modal-actions" style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #eee; padding-top: 15px;">
-                <button onclick="closeModal()" class="btn-secondary" style="padding: 8px 16px;">✅ Xong</button>
+            <div class="modal-actions">
+                <button class="btn-primary" onclick="closeModal()">✅ Xong</button>
             </div>
         </div>
     `;
@@ -1039,17 +535,31 @@ function showQuickTagModal(taxCode) {
     if (tagInput) {
         tagInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
-                const tag = this.value.trim();
-                if (tag) {
-                    console.log('🏷️ Adding new tag:', tag);
-                    addNewTag(taxCode, tag);
-                    this.value = '';
-                }
+                console.log('🏷️ Adding new tag:', this.value.trim());
+                addNewTag(taxCode, this.value.trim());
+                this.value = '';
             }
         });
     }
+    
+    // Xử lý gợi ý thẻ
+    document.querySelectorAll('.tag-suggestion').forEach(suggestion => {
+        suggestion.addEventListener('click', function() {
+            const tag = this.getAttribute('data-tag');
+            console.log('🏷️ Clicked suggested tag:', tag);
+            addNewTag(taxCode, tag);
+        });
+    });
+    
+    // Xử lý xóa thẻ
+    document.querySelectorAll('.remove-tag').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tag = this.getAttribute('data-tag');
+            console.log('🗑️ Removing tag:', tag);
+            removeTag(taxCode, tag);
+        });
+    });
 }
-    */
 function formatCurrency(amount) {
     if (typeof amount !== 'number' || isNaN(amount)) return '0';
     return accountingRound(amount).toLocaleString('vi-VN');
@@ -1531,83 +1041,13 @@ function updateTagFilterOptions() {
         tagFilter.appendChild(option);
     });
 }
-/*
+
 function applyCompanyFilters() {
     const searchTerm = document.getElementById('company-search')?.value.toLowerCase() || '';
     const selectedTag = document.getElementById('tag-filter')?.value || '';
     const noteStatus = document.getElementById('note-status-filter')?.value || '';
     
     const companyItems = document.querySelectorAll('.company-item');
-    
-    console.log('🔍 Applying filters:', { searchTerm, selectedTag, noteStatus });
-    
-    let visibleCount = 0;
-    
-    companyItems.forEach(item => {
-        let shouldShow = true;
-        
-        // Lọc theo search term
-        if (searchTerm) {
-            const companyName = item.getAttribute('data-name') || '';
-            const companyTaxCode = item.getAttribute('data-taxcode') || '';
-            
-            if (!companyName.includes(searchTerm) && !companyTaxCode.includes(searchTerm)) {
-                shouldShow = false;
-            }
-        }
-        
-        // Lọc theo tag
-        if (shouldShow && selectedTag) {
-            const companyTags = item.getAttribute('data-tags') || '';
-            if (!companyTags.includes(selectedTag)) {
-                shouldShow = false;
-            }
-        }
-        
-        // Lọc theo trạng thái ghi chú
-        if (shouldShow && noteStatus) {
-            const notesCount = parseInt(item.getAttribute('data-notes-count') || '0');
-            const hasPendingNotes = item.getAttribute('data-has-pending-notes') === 'true';
-            const allCompleted = item.getAttribute('data-all-completed') === 'true';
-            
-            switch(noteStatus) {
-                case 'has_notes':
-                    shouldShow = notesCount > 0;
-                    break;
-                case 'pending':
-                    shouldShow = hasPendingNotes;
-                    break;
-                case 'completed':
-                    shouldShow = allCompleted;
-                    break;
-                case 'no_notes':
-                    shouldShow = notesCount === 0;
-                    break;
-            }
-        }
-        
-        // HIỂN THỊ ĐÚNG CẤU TRÚC - KHÔNG THAY ĐỔI STYLE
-        if (shouldShow) {
-            item.style.display = 'flex'; // GIỮ NGUYÊN CẤU TRÚC FLEX
-            visibleCount++;
-        } else {
-            item.style.display = 'none';
-        }
-    });
-    
-    console.log(`✅ Filters applied: ${visibleCount}/${companyItems.length} companies visible`);
-}
-*/
-function applyCompanyFilters() {
-    const searchTerm = document.getElementById('company-search')?.value.toLowerCase() || '';
-    const selectedTag = document.getElementById('tag-filter')?.value || '';
-    const noteStatus = document.getElementById('note-status-filter')?.value || '';
-    
-    const companyItems = document.querySelectorAll('.company-item');
-    
-    console.log('🔍 Applying filters:', { searchTerm, selectedTag, noteStatus });
-    
-    let visibleCount = 0;
     
     companyItems.forEach(item => {
         let shouldShow = true;
@@ -1621,225 +1061,48 @@ function applyCompanyFilters() {
             }
         }
         
-        // Lọc theo tag - SỬA LẠI CÁCH TRÍCH XUẤT MST
+        // Lọc theo tag (cần lấy từ data attribute)
         if (shouldShow && selectedTag) {
-            const mstElement = item.querySelector('.company-mst');
-            let companyTaxCode = null;
-            
-            if (mstElement) {
-                // Cách 1: Lấy text và xử lý
-                const mstText = mstElement.textContent.trim();
-                companyTaxCode = mstText.replace('MST:', '').trim();
-                
-                // Cách 2: Tìm text node đầu tiên
-                if (!companyTaxCode) {
-                    const textNode = Array.from(mstElement.childNodes)
-                        .find(node => node.nodeType === Node.TEXT_NODE);
-                    if (textNode) {
-                        companyTaxCode = textNode.textContent.replace('MST:', '').trim();
-                    }
-                }
-            }
-            
-            console.log(`🏷️ Checking tag for ${companyTaxCode}:`, selectedTag);
+            const companyTaxCode = Array.from(item.querySelector('.company-mst')?.childNodes || [])
+                .find(node => node.nodeType === Node.TEXT_NODE)?.textContent
+                ?.replace('MST:', '')?.trim();
             
             if (companyTaxCode && window.hkdData[companyTaxCode]) {
-                const company = window.hkdData[companyTaxCode];
-                
-                // KIỂM TRA CẢ savedTags VÀ tags
-                const companySavedTags = company.savedTags || [];
-                const companyNoteTags = getAllTagsFromNotes(company.notes || []);
-                
-                // Gộp tất cả tags từ cả savedTags và notes
-                const allCompanyTags = [...new Set([...companySavedTags, ...companyNoteTags])];
-                
-                console.log(`📊 Company ${companyTaxCode} tags:`, allCompanyTags);
-                
-                if (!allCompanyTags.includes(selectedTag)) {
+                const companyTags = window.hkdData[companyTaxCode].tags || [];
+                if (!companyTags.includes(selectedTag)) {
                     shouldShow = false;
-                    console.log(`❌ Company ${companyTaxCode} doesn't have tag: ${selectedTag}`);
-                } else {
-                    console.log(`✅ Company ${companyTaxCode} has tag: ${selectedTag}`);
                 }
-            } else {
-                console.log(`❌ Company not found: ${companyTaxCode}`);
-                shouldShow = false;
             }
         }
         
-        // Lọc theo trạng thái ghi chú - SỬA LẠI CÁCH TRÍCH XUẤT MST
+        // Lọc theo trạng thái ghi chú
         if (shouldShow && noteStatus) {
-            const mstElement = item.querySelector('.company-mst');
-            let companyTaxCode = null;
-            
-            if (mstElement) {
-                const mstText = mstElement.textContent.trim();
-                companyTaxCode = mstText.replace('MST:', '').trim();
-            }
-            
-            console.log(`📝 Checking notes for ${companyTaxCode}:`, noteStatus);
+            const companyTaxCode = Array.from(item.querySelector('.company-mst')?.childNodes || [])
+                .find(node => node.nodeType === Node.TEXT_NODE)?.textContent
+                ?.replace('MST:', '')?.trim();
             
             if (companyTaxCode && window.hkdData[companyTaxCode]) {
                 const company = window.hkdData[companyTaxCode];
                 const notes = company.notes || [];
                 
-                console.log(`📋 Company ${companyTaxCode} has ${notes.length} notes`);
-                
-                let matches = false;
                 switch(noteStatus) {
                     case 'has_notes':
-                        matches = notes.length > 0;
+                        shouldShow = notes.length > 0;
                         break;
                     case 'pending':
-                        matches = notes.some(note => note.status !== 'completed');
+                        shouldShow = notes.some(note => note.status !== 'completed');
                         break;
                     case 'completed':
-                        matches = notes.length > 0 && notes.every(note => note.status === 'completed');
+                        shouldShow = notes.length > 0 && notes.every(note => note.status === 'completed');
                         break;
                     case 'no_notes':
-                        matches = notes.length === 0;
+                        shouldShow = notes.length === 0;
                         break;
                 }
-                
-                if (!matches) {
-                    shouldShow = false;
-                    console.log(`❌ Company ${companyTaxCode} doesn't match note status: ${noteStatus}`);
-                } else {
-                    console.log(`✅ Company ${companyTaxCode} matches note status: ${noteStatus}`);
-                }
-            } else {
-                shouldShow = false;
             }
         }
         
-        // HIỂN THỊ
-        if (shouldShow) {
-            item.style.display = 'block';
-            visibleCount++;
-        } else {
-            item.style.display = 'none';
-        }
-    });
-    
-    console.log(`✅ Filters applied: ${visibleCount}/${companyItems.length} companies visible`);
-}
-
-// ĐẢM BẢO HÀM NÀY TỒN TẠI
-function getAllTagsFromNotes(notes) {
-    const allTags = [];
-    notes.forEach(note => {
-        if (note.tags && Array.isArray(note.tags)) {
-            allTags.push(...note.tags);
-        }
-    });
-    return [...new Set(allTags)];
-}
-// Hàm trích xuất MST từ company item
-function extractTaxCodeFromItem(item) {
-    const mstElement = item.querySelector('.company-mst');
-    if (!mstElement) return null;
-    
-    // Lấy text từ MST element
-    const mstText = mstElement.textContent.trim();
-    const taxCode = mstText.replace('MST:', '').trim();
-    
-    return taxCode || null;
-}
-
-// Kiểm tra công ty có tag không
-function checkCompanyHasTag(company, selectedTag) {
-    // 1. Kiểm tra savedTags
-    if (company.savedTags && company.savedTags.includes(selectedTag)) {
-        return true;
-    }
-    
-    // 2. Kiểm tra tags từ notes
-    if (company.notes) {
-        for (const note of company.notes) {
-            if (note.tags && note.tags.includes(selectedTag)) {
-                return true;
-            }
-        }
-    }
-    
-    // 3. Kiểm tra tags từ reminders
-    if (company.reminders) {
-        for (const reminder of company.reminders) {
-            if (reminder.tags && reminder.tags.includes(selectedTag)) {
-                return true;
-            }
-        }
-    }
-    
-    return false;
-}
-
-// Kiểm tra trạng thái ghi chú
-function checkNotesMatchStatus(notes, noteStatus) {
-    switch(noteStatus) {
-        case 'has_notes':
-            return notes.length > 0;
-            
-        case 'pending':
-            return notes.some(note => note.status !== 'completed');
-            
-        case 'completed':
-            return notes.length > 0 && notes.every(note => note.status === 'completed');
-            
-        case 'no_notes':
-            return notes.length === 0;
-            
-        default:
-            return true;
-    }
-}
-
-// Hàm lấy tất cả tags từ notes
-function getAllTagsFromNotes(notes) {
-    const allTags = [];
-    notes.forEach(note => {
-        if (note.tags && Array.isArray(note.tags)) {
-            allTags.push(...note.tags);
-        }
-    });
-    return [...new Set(allTags)];
-}
-
-// Cập nhật danh sách thẻ cho filter
-function updateTagFilterOptions() {
-    const tagFilter = document.getElementById('tag-filter');
-    if (!tagFilter) return;
-    
-    // Lấy tất cả tags từ tất cả công ty (cả savedTags và note tags)
-    const allTags = new Set();
-    Object.values(window.hkdData).forEach(company => {
-        // Thêm savedTags
-        if (company.savedTags) {
-            company.savedTags.forEach(tag => allTags.add(tag));
-        }
-        // Thêm tags từ notes
-        if (company.notes) {
-            company.notes.forEach(note => {
-                if (note.tags) {
-                    note.tags.forEach(tag => allTags.add(tag));
-                }
-            });
-        }
-    });
-    
-    const sortedTags = Array.from(allTags).sort();
-    
-    // Giữ option đầu tiên
-    const firstOption = tagFilter.options[0];
-    tagFilter.innerHTML = '';
-    tagFilter.appendChild(firstOption);
-    
-    // Thêm các tag
-    sortedTags.forEach(tag => {
-        const option = document.createElement('option');
-        option.value = tag;
-        option.textContent = `#${tag}`;
-        tagFilter.appendChild(option);
+        item.style.display = shouldShow ? 'block' : 'none';
     });
 }
 
@@ -1848,791 +1111,6 @@ function clearFilters() {
     document.getElementById('tag-filter').value = '';
     document.getElementById('note-status-filter').value = '';
     applyCompanyFilters();
-}
-function showUrlManagerPopup() {
-    const companies = Object.keys(window.hkdData);
-    
-    if (companies.length === 0) {
-        alert('❌ Chưa có công ty nào. Vui lòng thêm công ty trước.');
-        return;
-    }
-
-    const modalContent = `
-        <div class="url-manager-modal">
-            <h4 style="margin-bottom: 15px; color: #1976d3;">🌐 Quản Lý URL Toàn Hệ Thống</h4>
-            
-            <div style="background: #e8f5e8; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
-                <h5 style="margin: 0 0 10px 0; color: #2e7d32;">🌍 URL CHUNG CHO TOÀN BỘ CÔNG TY</h5>
-                <p style="margin: 0; color: #555; font-size: 13px;">URL này sẽ được áp dụng cho tất cả ${companies.length} công ty trong hệ thống</p>
-            </div>
-            
-            <div class="form-group" style="margin-bottom: 20px;">
-                <label style="display: block; margin-bottom: 8px; font-weight: bold;">URL mặc định toàn hệ thống:</label>
-                <input type="url" id="global-default-url" value="${getGlobalDefaultUrl()}" 
-                       placeholder="https://hoadondientu.gdt.gov.vn" 
-                       style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
-                <small style="color: #666;">URL này sẽ dùng cho tất cả công ty khi chưa có URL riêng</small>
-            </div>
-            
-            <div class="form-group" style="margin-bottom: 20px;">
-                <label style="display: block; margin-bottom: 8px; font-weight: bold;">📋 Danh sách URL chung:</label>
-                <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                    <input type="url" id="new-global-url" placeholder="https://example.com" 
-                           style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
-                    <button onclick="addGlobalUrl()" class="btn-success" style="padding: 10px 15px;">➕ Thêm URL Chung</button>
-                </div>
-                <div id="global-urls-list" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 15px; border-radius: 6px; background: #f8f9fa;">
-                    ${renderGlobalUrlsList()}
-                </div>
-            </div>
-            
-            <div style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #eee; padding-top: 20px;">
-                <button onclick="saveGlobalUrls()" class="btn-success" style="padding: 10px 20px;">💾 Lưu URL Toàn Hệ Thống</button>
-                <button onclick="closeModal()" class="btn-secondary" style="padding: 10px 20px;">❌ Đóng</button>
-            </div>
-        </div>
-    `;
-    
-    showModal('Quản Lý URL Toàn Hệ Thống', modalContent);
-}
-// Lưu URL mặc định toàn hệ thống
-function saveGlobalDefaultUrl(url) {
-    if (!window.hkdData._system) {
-        window.hkdData._system = {};
-    }
-    window.hkdData._system.globalDefaultUrl = url;
-    saveData();
-}
-
-// Lấy URL mặc định toàn hệ thống
-function getGlobalDefaultUrl() {
-    return window.hkdData._system?.globalDefaultUrl || 'https://hoadondientu.gdt.gov.vn';
-}
-
-// Lưu danh sách URL chung toàn hệ thống
-function saveGlobalUrls(urls) {
-    if (!window.hkdData._system) {
-        window.hkdData._system = {};
-    }
-    window.hkdData._system.globalUrls = urls;
-    saveData();
-    showToast('✅ Đã lưu URL toàn hệ thống', 2000, 'success');
-}
-
-// Lấy danh sách URL chung toàn hệ thống
-function getGlobalUrls() {
-    return window.hkdData._system?.globalUrls || [];
-}
-
-// Thêm URL vào danh sách chung
-function addGlobalUrl() {
-    const urlInput = document.getElementById('new-global-url');
-    const url = urlInput.value.trim();
-    
-    if (!url) {
-        alert('❌ Vui lòng nhập URL');
-        return;
-    }
-    
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        alert('❌ URL phải bắt đầu với http:// hoặc https://');
-        return;
-    }
-    
-    const globalUrls = getGlobalUrls();
-    if (globalUrls.includes(url)) {
-        alert('❌ URL đã tồn tại trong danh sách chung');
-        return;
-    }
-    
-    globalUrls.push(url);
-    saveGlobalUrls(globalUrls);
-    
-    // Cập nhật UI
-    document.getElementById('global-urls-list').innerHTML = renderGlobalUrlsList();
-    urlInput.value = '';
-    
-    showToast('✅ Đã thêm URL vào danh sách chung', 2000, 'success');
-}
-
-// Xóa URL khỏi danh sách chung
-function removeGlobalUrl(url) {
-    const globalUrls = getGlobalUrls();
-    const index = globalUrls.indexOf(url);
-    
-    if (index !== -1) {
-        globalUrls.splice(index, 1);
-        saveGlobalUrls(globalUrls);
-        document.getElementById('global-urls-list').innerHTML = renderGlobalUrlsList();
-        showToast('✅ Đã xóa URL khỏi danh sách chung', 2000, 'success');
-    }
-}
-
-// Render danh sách URL chung
-function renderGlobalUrlsList() {
-    const globalUrls = getGlobalUrls();
-    
-    if (globalUrls.length === 0) {
-        return '<div style="color: #666; text-align: center; padding: 10px;">Chưa có URL nào trong danh sách chung</div>';
-    }
-    
-    return globalUrls.map(url => `
-        <div class="url-item" style="display: flex; justify-content: space-between; align-items: center; padding: 8px; margin-bottom: 5px; background: white; border-radius: 4px; border: 1px solid #e0e0e0;">
-            <span style="flex: 1; font-size: 12px; word-break: break-all;">${url}</span>
-            <div style="display: flex; gap: 5px;">
-                <button onclick="launchUrlPreview('${url}')" class="btn-small" style="padding: 4px 8px; background: #17a2b8; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 10px;">👁️ Xem</button>
-                <button onclick="removeGlobalUrl('${url}')" class="btn-small btn-danger" style="padding: 4px 8px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 10px;">🗑️ Xóa</button>
-            </div>
-        </div>
-    `).join('');
-}
-
-// Lưu cài đặt URL toàn hệ thống
-function saveGlobalUrls() {
-    const defaultUrl = document.getElementById('global-default-url').value.trim();
-    
-    if (!defaultUrl) {
-        alert('❌ Vui lòng nhập URL mặc định');
-        return;
-    }
-    
-    if (!defaultUrl.startsWith('http://') && !defaultUrl.startsWith('https://')) {
-        alert('❌ URL mặc định phải bắt đầu với http:// hoặc https://');
-        return;
-    }
-    
-    saveGlobalDefaultUrl(defaultUrl);
-    showToast('✅ Đã lưu cài đặt URL toàn hệ thống', 2000, 'success');
-}
-/*
-// Load URLs của công ty được chọn
-function loadCompanyUrls() {
-    const companySelect = document.getElementById('company-urls-select');
-    const companySection = document.getElementById('company-urls-section');
-    const noCompanyMsg = document.getElementById('no-company-selected');
-    const companyNameSpan = document.getElementById('current-company-name');
-    
-    const taxCode = companySelect.value;
-    
-    if (!taxCode) {
-        companySection.style.display = 'none';
-        noCompanyMsg.style.display = 'block';
-        return;
-    }
-    
-    const company = window.hkdData[taxCode];
-    companyNameSpan.textContent = company.name;
-    
-    // Hiển thị section quản lý URLs công ty
-    companySection.style.display = 'block';
-    noCompanyMsg.style.display = 'none';
-    
-    // Load danh sách URLs của công ty
-    const companyUrls = getProfileUrls(taxCode);
-    const companyUrlsList = document.getElementById('company-urls-list');
-    
-    if (companyUrls.length === 0) {
-        companyUrlsList.innerHTML = `
-            <div style="color: #666; text-align: center; padding: 10px;">
-                <p>📝 Chưa có URL riêng cho công ty này</p>
-                <small>Công ty sẽ sử dụng URL toàn hệ thống</small>
-            </div>
-        `;
-    } else {
-        companyUrlsList.innerHTML = companyUrls.map(url => `
-            <div class="url-item" style="display: flex; justify-content: space-between; align-items: center; padding: 8px; margin-bottom: 5px; background: white; border-radius: 4px; border: 1px solid #e0e0e0;">
-                <span style="flex: 1; font-size: 12px; word-break: break-all;">${url}</span>
-                <div style="display: flex; gap: 5px;">
-                    <button onclick="launchChromeProfile('${taxCode}', '${url}')" class="btn-small" style="padding: 4px 8px; background: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 10px;">🚀 Mở</button>
-                    <button onclick="removeCompanyUrl('${taxCode}', '${url}')" class="btn-small btn-danger" style="padding: 4px 8px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 10px;">🗑️ Xóa</button>
-                </div>
-            </div>
-        `).join('');
-    }
-}
-*/
-// Thêm URL cho công ty
-function addCompanyUrl() {
-    const companySelect = document.getElementById('company-urls-select');
-    const urlInput = document.getElementById('new-company-url');
-    const taxCode = companySelect.value;
-    const url = urlInput.value.trim();
-    
-    if (!taxCode) {
-        alert('❌ Vui lòng chọn công ty trước');
-        return;
-    }
-    
-    if (!url) {
-        alert('❌ Vui lòng nhập URL');
-        return;
-    }
-    
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        alert('❌ URL phải bắt đầu với http:// hoặc https://');
-        return;
-    }
-    
-    const result = addProfileUrl(taxCode, url);
-    
-    if (result.success) {
-        // Reload danh sách URLs
-        loadCompanyUrls();
-        urlInput.value = '';
-        showToast('✅ Đã thêm URL cho công ty', 2000, 'success');
-    } else {
-        alert('❌ ' + result.message);
-    }
-}
-
-function removeCompanyUrl(taxCode, url) {
-    if (!confirm(`Bạn có chắc muốn xóa URL này khỏi công ty?`)) {
-        return;
-    }
-    
-    if (removeProfileUrl(taxCode, url)) {
-        // THAY VÌ gọi loadCompanyUrls() (cho popup cũ)
-        // HÃY reload lại popup "Chọn URL" hiện tại
-        const currentModal = document.getElementById('custom-modal');
-        if (currentModal && currentModal.querySelector('.url-selection-modal')) {
-            // Nếu đang ở popup "Chọn URL", reload nó
-            showUrlSelectionPopup(taxCode);
-        }
-        
-        showToast('✅ Đã xóa URL khỏi công ty', 2000, 'success');
-    }
-}
-
-// Lưu URLs của công ty
-function saveCompanyUrls() {
-    const companySelect = document.getElementById('company-urls-select');
-    const taxCode = companySelect.value;
-    
-    if (!taxCode) {
-        alert('❌ Vui lòng chọn công ty');
-        return;
-    }
-    
-    showToast('✅ Đã lưu URLs cho công ty', 2000, 'success');
-}
-
-// Reset URLs của công ty về dùng URL chung
-function resetCompanyUrls() {
-    const companySelect = document.getElementById('company-urls-select');
-    const taxCode = companySelect.value;
-    
-    if (!taxCode) {
-        alert('❌ Vui lòng chọn công ty');
-        return;
-    }
-    
-    if (!confirm(`Bạn có chắc muốn xóa tất cả URL riêng và dùng URL toàn hệ thống?`)) {
-        return;
-    }
-    
-    // Xóa tất cả URLs riêng
-    saveProfileUrls(taxCode, []);
-    loadCompanyUrls();
-    
-    showToast('✅ Đã reset URLs - Công ty sẽ dùng URL toàn hệ thống', 2000, 'success');
-}
-// Xem trước URL
-function launchUrlPreview(url) {
-    window.open(url, '_blank');
-}
-
-// Sửa hàm switchUrlTab cho 2 tab mới
-function switchUrlTab(tabName) {
-    // Ẩn tất cả tab content
-    document.querySelectorAll('.url-tab-content').forEach(tab => {
-        tab.style.display = 'none';
-    });
-    
-    // Bỏ active tất cả tab buttons
-    document.querySelectorAll('.url-manager-tabs .tab-btn').forEach(btn => {
-        btn.style.background = '#f8f9fa';
-        btn.style.color = '#000';
-    });
-    
-    // Hiển thị tab được chọn
-    const activeTab = document.getElementById(`${tabName}-tab`);
-    if (activeTab) {
-        activeTab.style.display = 'block';
-    }
-    
-    // Active tab button
-    const activeButton = document.querySelector(`.tab-btn[onclick="switchUrlTab('${tabName}')"]`);
-    if (activeButton) {
-        activeButton.style.background = '#007bff';
-        activeButton.style.color = 'white';
-    }
-    
-    // Reset khi chuyển tab
-    if (tabName === 'company-urls') {
-        document.getElementById('company-urls-section').style.display = 'none';
-        document.getElementById('no-company-selected').style.display = 'block';
-    }
-}
-function launchChromeProfile(taxCode, customUrl = '') {
-    const company = window.hkdData[taxCode];
-    if (!company) {
-        alert('❌ Không tìm thấy thông tin công ty');
-        return;
-    }
-
-    // Nếu có URL cụ thể được truyền vào, mở luôn
-    if (customUrl) {
-        openChromeWithUrl(taxCode, customUrl);
-        return;
-    }
-
-    // LUÔN HIỂN THỊ POPUP CHỌN URL (không tự mở luôn)
-    showUrlSelectionPopup(taxCode);
-}
-
-
-// Hàm mở Chrome với URL cụ thể
-function openChromeWithUrl(taxCode, url) {
-    const company = window.hkdData[taxCode];
-    
-    // Gọi protocol myacc://
-    const protocolUrl = `myacc://mst=${taxCode};url=${encodeURIComponent(url)}`;
-    
-    console.log('🚀 Opening Chrome profile:', {
-        taxCode: taxCode,
-        company: company.name,
-        url: url,
-        protocol: protocolUrl
-    });
-    
-    // Tạo link ảo để kích hoạt protocol
-    try {
-        const link = document.createElement('a');
-        link.href = protocolUrl;
-        link.style.display = 'none';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        // Thông báo thành công
-        showToast(`🚀 Đang mở ${company.name}...`, 3000, 'success');
-        
-        console.log(`✅ Đã mở profile: ${company.name} (${taxCode}) với URL: ${url}`);
-        
-    } catch (error) {
-        console.error('❌ Lỗi khi mở profile:', error);
-        alert('❌ Không thể mở profile. Đảm bảo MyAcc Launcher đã được cài đặt.');
-    }
-}
-
-// Hàm lấy danh sách URL có sẵn cho công ty
-function getAvailableUrlsForCompany(taxCode) {
-    const urls = [];
-    
-    // 1. Thêm URLs riêng của công ty (nếu có)
-    const companyUrls = getProfileUrls(taxCode);
-    if (companyUrls.length > 0) {
-        urls.push(...companyUrls);
-    }
-    // 2. Thêm URLs toàn hệ thống (nếu công ty không có URL riêng)
-    else {
-        const globalUrls = getGlobalUrls();
-        if (globalUrls.length > 0) {
-            urls.push(...globalUrls);
-        }
-        // 3. Thêm URL mặc định toàn hệ thống
-        else {
-            urls.push(getGlobalDefaultUrl());
-        }
-    }
-    
-    return urls;
-}
-function showUrlSelectionPopup(taxCode, urls) {
-    const company = window.hkdData[taxCode];
-    const allUrls = getAvailableUrlsForCompany(taxCode);
-    
-    const modalContent = `
-        <div class="url-selection-modal">
-            
-            
-            
-            <!-- PHẦN QUẢN LÝ URL RIÊNG -->
-            <div style="margin-bottom: 20px; padding: 15px; background: #fff3cd; border-radius: 6px; border: 1px solid #ffeaa7;">
-                <h5 style="margin: 0 0 10px 0; color: #856404;">🏢 Quản Lý URL Riêng Cho Công Ty</h5>
-                
-                <div style="display: flex; gap: 8px; margin-bottom: 10px;">
-                    <input type="url" id="new-company-url" placeholder="https://example.com" 
-                           style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                    <button onclick="addCompanyUrl('${taxCode}')" class="btn-success" style="padding: 8px 12px;">➕ Thêm URL Riêng</button>
-                    <button onclick="addVnptUrl('${taxCode}')" class="btn-primary" style="padding: 8px 12px; background: #e74c3c;">🔗 Thêm URL VNPT</button>
-                </div>
-                
-                <div id="company-urls-management" style="max-height: 150px; overflow-y: auto;">
-                    ${renderCompanyUrlsManagement(taxCode)}
-                </div>
-            </div>
-            
-            <!-- DANH SÁCH URL CÓ SẴN ĐỂ MỞ -->
-            <div style="margin-bottom: 20px;">
-                <label style="display: block; margin-bottom: 10px; font-weight: bold;">📋 Chọn URL để mở:</label>
-                <div id="url-selection-list" style="max-height: 250px; overflow-y: auto; border: 1px solid #ddd; border-radius: 6px;">
-                    ${renderUrlSelectionList(allUrls, taxCode)}
-                </div>
-            </div>
-            
-           
-            
-            <div style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #eee; padding-top: 15px;">
-                <button onclick="closeModal()" class="btn-secondary" style="padding: 8px 16px;">❌ Đóng</button>
-            </div>
-        </div>
-    `;
-    
-    showModal(`Chọn URL - ${company.name}`, modalContent);
-}
-function addVnptUrl(taxCode) {
-    const company = window.hkdData[taxCode];
-    
-    // Tạo URL VNPT theo cú pháp: https://MST-tt78cadmin.vnpt-invoice.com.vn/
-    const vnptUrl = `https://${taxCode}-tt78cadmin.vnpt-invoice.com.vn/`;
-    
-    // Thêm vào URLs riêng của công ty
-    const result = addProfileUrl(taxCode, vnptUrl);
-    
-    if (result.success) {
-        // Reload popup "Chọn URL" hiện tại
-        const currentModal = document.getElementById('custom-modal');
-        if (currentModal && currentModal.querySelector('.url-selection-modal')) {
-            showUrlSelectionPopup(taxCode);
-        }
-        
-        showToast('✅ Đã thêm URL VNPT tự động', 2000, 'success');
-    } else {
-        alert('❌ ' + result.message);
-    }
-}
-function renderCompanyUrlsManagement(taxCode) {
-    const companyUrls = getProfileUrls(taxCode);
-    
-    if (companyUrls.length === 0) {
-        return `
-            
-        `;
-    }
-    
-    return companyUrls.map(url => `
-        <div class="company-url-item" style="display: flex; justify-content: space-between; align-items: center; padding: 8px; margin-bottom: 5px; background: white; border-radius: 4px; border: 1px solid #e0e0e0;">
-            <span style="flex: 1; font-size: 12px; word-break: break-all; color: #28a745;">${url}</span>
-            <div style="display: flex; gap: 5px;">
-                <button onclick="launchChromeProfile('${taxCode}', '${url}')" class="btn-small" style="padding: 4px 8px; background: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 10px;">🚀 Mở</button>
-                <button onclick="removeCompanyUrl('${taxCode}', '${url}')" class="btn-small btn-danger" style="padding: 4px 8px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 10px;">🗑️ Xóa</button>
-            </div>
-        </div>
-    `).join('');
-}
-
-
-// Render danh sách URL để lựa chọn
-function renderUrlSelectionList(urls, taxCode) {
-    if (urls.length === 0) {
-        return `
-            <div style="text-align: center; padding: 20px; color: #666;">
-                <p>📝 Không có URL nào</p>
-                <small>Vui lòng thêm URL trong mục Quản lý URL</small>
-            </div>
-        `;
-    }
-    
-    return urls.map((url, index) => {
-        // Xác định loại URL
-        let urlType = '🌍 Chung';
-        let typeColor = '#17a2b8';
-        
-        const companyUrls = getProfileUrls(taxCode);
-        if (companyUrls.includes(url)) {
-            urlType = '🏢 Riêng';
-            typeColor = '#28a745';
-        } else if (url === getGlobalDefaultUrl()) {
-            urlType = '⭐ Mặc định';
-            typeColor = '#ffc107';
-        }
-        
-        return `
-            <div class="url-selection-item" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; margin-bottom: 8px; background: white; border-radius: 6px; border: 1px solid #e0e0e0; cursor: pointer; transition: all 0.2s;"
-                 onclick="openChromeWithUrl('${taxCode}', '${url}'); closeModal();">
-                <div style="flex: 1;">
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                        <span style="font-size: 12px; background: ${typeColor}; color: white; padding: 2px 6px; border-radius: 10px;">${urlType}</span>
-                        <span style="font-size: 10px; color: #6c757d;">${index + 1}/${urls.length}</span>
-                    </div>
-                    <div style="font-size: 13px; color: #495057; word-break: break-all;">${url}</div>
-                </div>
-                <div style="margin-left: 10px;">
-                    <button class="btn-success" style="padding: 6px 10px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; white-space: nowrap;">
-                        🚀 Mở
-                    </button>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
-// Mở URL tùy chỉnh
-function launchCustomUrl(taxCode) {
-    const urlInput = document.getElementById('custom-url-input');
-    const url = urlInput.value.trim();
-    
-    if (!url) {
-        alert('❌ Vui lòng nhập URL');
-        return;
-    }
-    
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        alert('❌ URL phải bắt đầu với http:// hoặc https://');
-        return;
-    }
-    
-    openChromeWithUrl(taxCode, url);
-    closeModal();
-}
-// Thêm vào hàm addUrlManagerStyles()
-function addUrlManagerStyles() {
-    const styles = `
-        <style>
-        /* Nút mở profile trong sidebar */
-        .company-profile-action {
-            margin-top: 8px;
-            text-align: center;
-        }
-        
-        .btn-profile-launch {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 15px;
-            font-size: 11px;
-            cursor: pointer;
-            transition: all 0.3s;
-            width: 100%;
-        }
-        
-        .btn-profile-launch:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        }
-        
-        /* Quick URL items */
-        .quick-url-item {
-            transition: background-color 0.2s;
-        }
-        
-        .quick-url-item:hover {
-            background-color: #e3f2fd !important;
-        }
-        
-        /* URL selection items */
-        .url-selection-item:hover {
-            background-color: #f8f9fa !important;
-            border-color: #007bff !important;
-            transform: translateY(-1px);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        .url-item {
-            transition: background-color 0.2s;
-        }
-        
-        .url-item:hover {
-            background-color: #f8f9fa !important;
-        }
-        </style>
-    `;
-    
-    // Chỉ thêm CSS nếu chưa tồn tại
-    if (!document.getElementById('url-manager-styles')) {
-        const styleElement = document.createElement('style');
-        styleElement.id = 'url-manager-styles';
-        styleElement.innerHTML = styles;
-        document.head.appendChild(styleElement);
-    }
-}
-function switchUrlTab(tabName) {
-    // Ẩn tất cả tab content
-    document.querySelectorAll('.url-tab-content').forEach(tab => {
-        tab.style.display = 'none';
-    });
-    
-    // Bỏ active tất cả tab buttons
-    document.querySelectorAll('.url-manager-tabs .tab-btn').forEach(btn => {
-        btn.style.background = '#f8f9fa';
-        btn.style.color = '#000';
-    });
-    
-    // Hiển thị tab được chọn
-    const activeTab = document.getElementById(`${tabName}-tab`);
-    if (activeTab) {
-        activeTab.style.display = 'block';
-    }
-    
-    // Active tab button
-    const activeButton = document.querySelector(`.tab-btn[onclick="switchUrlTab('${tabName}')"]`);
-    if (activeButton) {
-        activeButton.style.background = '#007bff';
-        activeButton.style.color = 'white';
-    }
-}
-function updateQuickUrls() {
-    const companySelect = document.getElementById('quick-company-select');
-    const urlsList = document.getElementById('quick-urls-list');
-    
-    if (!companySelect || !urlsList) return;
-    
-    const taxCode = companySelect.value;
-    
-    if (!taxCode) {
-        urlsList.innerHTML = '<em style="color: #666;">Chọn công ty để xem URLs</em>';
-        return;
-    }
-    
-    const company = window.hkdData[taxCode];
-    const profileUrls = getProfileUrls(taxCode);
-    
-    if (profileUrls.length === 0) {
-        urlsList.innerHTML = `
-            <div style="color: #666; text-align: center; padding: 10px;">
-                <p>📝 Chưa có URL nào được lưu</p>
-                <small>Thêm URL trong tab "Quản Lý" hoặc dùng URL tùy chỉnh</small>
-            </div>
-        `;
-        return;
-    }
-    
-    // Hiển thị danh sách URLs
-    urlsList.innerHTML = profileUrls.map((url, index) => `
-        <div class="quick-url-item" style="display: flex; justify-content: space-between; align-items: center; padding: 8px; margin-bottom: 5px; background: white; border-radius: 4px; border: 1px solid #e0e0e0;">
-            <span style="flex: 1; font-size: 12px; word-break: break-all;">${url}</span>
-            <button onclick="launchQuickUrl('${taxCode}', '${url}')" class="btn-small" style="padding: 4px 8px; background: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 10px; margin-left: 8px;">🚀 Mở</button>
-        </div>
-    `).join('');
-}
-function launchQuickUrl(taxCode = '', customUrl = '') {
-    let targetTaxCode = taxCode;
-    let targetUrl = customUrl;
-    
-    // Nếu không có tham số, lấy từ form
-    if (!targetTaxCode) {
-        const companySelect = document.getElementById('quick-company-select');
-        targetTaxCode = companySelect ? companySelect.value : '';
-    }
-    
-    if (!targetUrl) {
-        const customUrlInput = document.getElementById('custom-url');
-        targetUrl = customUrlInput ? customUrlInput.value.trim() : '';
-    }
-    
-    // Validate
-    if (!targetTaxCode) {
-        alert('❌ Vui lòng chọn công ty');
-        return;
-    }
-    
-    if (!targetUrl) {
-        // Nếu không có URL tùy chỉnh, lấy URL đầu tiên từ profile
-        const profileUrls = getProfileUrls(targetTaxCode);
-        if (profileUrls.length > 0) {
-            targetUrl = profileUrls[0];
-        } else {
-            alert('❌ Vui lòng nhập URL hoặc thêm URL vào profile trước');
-            return;
-        }
-    }
-    
-    // Validate URL format
-    if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
-        alert('❌ URL phải bắt đầu với http:// hoặc https://');
-        return;
-    }
-    
-    // Mở profile
-    launchChromeProfile(targetTaxCode, targetUrl);
-}
-// Lưu URLs cho từng profile
-function saveProfileUrls(taxCode, urls) {
-    ensureCompanyData(taxCode);
-    window.hkdData[taxCode].profileUrls = urls;
-    saveData();
-}
-
-// Lấy URLs của profile
-function getProfileUrls(taxCode) {
-    return window.hkdData[taxCode]?.profileUrls || [];
-}
-
-// Thêm URL mới vào profile
-function addProfileUrl(taxCode, url) {
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        return { success: false, message: 'URL phải bắt đầu với http:// hoặc https://' };
-    }
-    
-    const urls = getProfileUrls(taxCode);
-    if (!urls.includes(url)) {
-        urls.push(url);
-        saveProfileUrls(taxCode, urls);
-        return { success: true, message: 'Đã thêm URL vào profile' };
-    }
-    return { success: false, message: 'URL đã tồn tại trong profile' };
-}
-
-// Xóa URL khỏi profile
-function removeProfileUrl(taxCode, url) {
-    const urls = getProfileUrls(taxCode);
-    const index = urls.indexOf(url);
-    if (index !== -1) {
-        urls.splice(index, 1);
-        saveProfileUrls(taxCode, urls);
-        return true;
-    }
-    return false;
-}
-
-// Mở trình quản lý nâng cao
-function openAdvancedUrlManager() {
-    // Mở file HTML quản lý URLs (nếu có)
-    window.open('openURL.html', '_blank');
-    
-    // Hoặc có thể đóng modal hiện tại
-    closeModal();
-}
-// Hàm lấy tất cả tags của công ty
-function getAllCompanyTags(company) {
-    const tags = new Set();
-    
-    // Thêm savedTags
-    if (company.savedTags) {
-        company.savedTags.forEach(tag => tags.add(tag));
-    }
-    
-    // Thêm tags từ notes
-    if (company.notes) {
-        company.notes.forEach(note => {
-            if (note.tags) {
-                note.tags.forEach(tag => tags.add(tag));
-            }
-        });
-    }
-    
-    // Thêm tags từ reminders
-    if (company.reminders) {
-        company.reminders.forEach(reminder => {
-            if (reminder.tags) {
-                reminder.tags.forEach(tag => tags.add(tag));
-            }
-        });
-    }
-    
-    return Array.from(tags);
 }
 function renderCompanyList() {
     const companyList = document.getElementById('company-list');
@@ -2655,24 +1133,6 @@ function renderCompanyList() {
         const company = window.hkdData[taxCode];
         const companyItem = document.createElement('div');
         companyItem.className = 'company-item';
-        
-        // THÊM DATA ATTRIBUTES ĐỂ LỌC (không ảnh hưởng hiển thị)
-        companyItem.setAttribute('data-taxcode', taxCode);
-        companyItem.setAttribute('data-name', (company.name || '').toLowerCase());
-        
-        const allTags = getAllCompanyTags(company);
-        if (allTags.length > 0) {
-            companyItem.setAttribute('data-tags', allTags.join(','));
-        }
-        
-        const notesCount = company.notes?.length || 0;
-        companyItem.setAttribute('data-notes-count', notesCount);
-        
-        const hasPendingNotes = company.notes?.some(note => note.status !== 'completed') || false;
-        companyItem.setAttribute('data-has-pending-notes', hasPendingNotes);
-        
-        const allCompleted = notesCount > 0 && company.notes?.every(note => note.status === 'completed');
-        companyItem.setAttribute('data-all-completed', allCompleted);
         
         // Kiểm tra cảnh báo
         const alertInfo = checkUrgentReminders(company.reminders || []);
@@ -2702,40 +1162,25 @@ function renderCompanyList() {
             ? company.notes[company.notes.length - 1] 
             : null;
 
-        // Lấy số URL có sẵn (kiểm tra hàm tồn tại trước)
-        const urlCount = typeof getAvailableUrlsForCompany === 'function' ? 
-            getAvailableUrlsForCompany(taxCode).length : 0;
-
         // Tạo HTML với NÚT MỞ PROFILE
         companyItem.innerHTML = `
-           <div class="company-header">
-    <div class="company-name">${company.name || 'Chưa có tên'}</div>
-    <div class="company-actions">
-        ${hasNotes ? `
-            <span class="note-indicator" onclick="event.stopPropagation(); showNotesQuickView('${taxCode}')" 
-                  title="${noteCount} ghi chú - ${pendingNotes} chưa hoàn thành">
-                ${pendingNotes > 0 ? '📝🔴' : '📝'}
-                ${noteCount > 1 ? noteCount : ''}
-            </span>
-        ` : `
-            <span class="note-indicator" onclick="event.stopPropagation(); showQuickNoteModal('${taxCode}')" 
-                  title="Thêm ghi chú">
-                📝
-            </span>
-        `}
-        ${alertInfo.hasAlert ? `
-            <span class="alert-indicator" onclick="event.stopPropagation(); showAlertsModal('${taxCode}')"
-                  title="${alertInfo.level === 'urgent' ? 'Cảnh báo khẩn cấp' : 'Có nhắc nhở'}">
-                ${alertInfo.level === 'urgent' ? '🔴' : '🟡'}
-            </span>
-        ` : ''}
-        <!-- NÚT PROFILE LAUNCH - NẰM RIÊNG NGOÀI NOTE INDICATOR -->
-        <button class="btn-profile-launch" onclick="event.stopPropagation(); launchChromeProfile('${taxCode}')" 
-                title="${urlCount} URL có sẵn - Click để chọn">
-            🚀 (${urlCount})
-        </button>
-    </div>
-</div>
+            <div class="company-header">
+                <div class="company-name">${company.name || 'Chưa có tên'}</div>
+                <div class="company-actions">
+                    ${hasNotes ? `
+                        <span class="note-indicator" onclick="event.stopPropagation(); showNotesQuickView('${taxCode}')" 
+                              title="${noteCount} ghi chú - ${pendingNotes} chưa hoàn thành">
+                            ${pendingNotes > 0 ? '📝🔴' : '📝'}
+                            ${noteCount > 1 ? noteCount : ''}
+                        </span>
+                    ` : `
+                        <span class="note-indicator" onclick="event.stopPropagation(); showQuickNoteModal('${taxCode}')" 
+                              title="Thêm ghi chú">
+                            📝
+                        </span>
+                    `}
+                </div>
+            </div>
             
             <div class="company-mst">
                 <span>MST: ${taxCode}</span>
@@ -2751,7 +1196,13 @@ function renderCompanyList() {
                 <small>🧾 HĐ: ${company.invoices?.length || 0} | 📦 Tồn kho: ${totalStock.toLocaleString('vi-VN')} SP</small>
             </div>
             
-            
+            <!-- NÚT MỞ PROFILE CHROME -->
+            <div class="company-profile-action">
+                <button class="btn-profile-launch" onclick="event.stopPropagation(); launchChromeProfile('${taxCode}')" 
+                        title="Mở profile Chrome cho ${company.name}">
+                    🚀 Mở Profile
+                </button>
+            </div>
             
             <!-- Tooltip hiển thị khi hover -->
             ${latestNote ? `
@@ -2787,6 +1238,65 @@ function renderCompanyList() {
     applyCompanyFilters();
 }
 
+function showUrlManagerPopup() {
+    const companies = Object.keys(window.hkdData);
+    
+    if (companies.length === 0) {
+        alert('❌ Chưa có công ty nào. Vui lòng thêm công ty trước.');
+        return;
+    }
+
+    const modalContent = `
+        <div class="url-manager-modal">
+            <h4 style="margin-bottom: 15px; color: #1976d3;">🌐 Quản Lý URL Profiles</h4>
+            
+            <div class="url-manager-tabs" style="display: flex; border-bottom: 1px solid #ddd; margin-bottom: 15px;">
+                <button class="tab-btn active" onclick="switchUrlTab('quick-launch')" style="flex: 1; padding: 10px; border: none; background: #007bff; color: white; cursor: pointer;">🚀 Mở Nhanh</button>
+                <button class="tab-btn" onclick="switchUrlTab('manage-profiles')" style="flex: 1; padding: 10px; border: none; background: #f8f9fa; cursor: pointer;">📋 Quản Lý</button>
+            </div>
+            
+            <div id="quick-launch-tab" class="url-tab-content active">
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Chọn công ty:</label>
+                    <select id="quick-company-select" onchange="updateQuickUrls()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="">-- Chọn công ty --</option>
+                        ${companies.map(taxCode => `
+                            <option value="${taxCode}">${window.hkdData[taxCode].name} (${taxCode})</option>
+                        `).join('')}
+                    </select>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">URLs có sẵn:</label>
+                    <div id="quick-urls-list" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px; background: #f8f9fa;">
+                        <em style="color: #666;">Chọn công ty để xem URLs</em>
+                    </div>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">URL tùy chỉnh:</label>
+                    <input type="url" id="custom-url" placeholder="https://example.com" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #eee; padding-top: 15px;">
+                    <button onclick="launchQuickUrl()" class="btn-success" style="padding: 8px 16px;">🚀 Mở URL</button>
+                    <button onclick="closeModal()" class="btn-secondary" style="padding: 8px 16px;">❌ Đóng</button>
+                </div>
+            </div>
+            
+            <div id="manage-profiles-tab" class="url-tab-content" style="display: none;">
+                <div style="text-align: center; padding: 20px;">
+                    <h5>📊 Quản Lý Nâng Cao</h5>
+                    <p>Mở trình quản lý URLs chi tiết cho tất cả profiles</p>
+                    <button onclick="openAdvancedUrlManager()" class="btn-primary" style="padding: 10px 20px; margin: 10px 0;">📋 Mở Quản Lý Nâng Cao</button>
+                    <p style="font-size: 12px; color: #666;">Sẽ mở trang quản lý URLs đầy đủ</p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    showModal('Quản Lý URL Profiles', modalContent);
+}
 
 function addSavedTag(taxCode) {
     const input = document.getElementById('new-saved-tag');
@@ -2857,39 +1367,7 @@ function addCompanyTag(taxCode, tag) {
         }
     }
 }
-function addCompanyUrl(taxCode) {
-    const urlInput = document.getElementById('new-company-url');
-    const url = urlInput ? urlInput.value.trim() : '';
-    
-    if (!url) {
-        alert('❌ Vui lòng nhập URL');
-        return;
-    }
-    
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        alert('❌ URL phải bắt đầu với http:// hoặc https://');
-        return;
-    }
-    
-    const result = addProfileUrl(taxCode, url);
-    
-    if (result.success) {
-        // Reload popup "Chọn URL" hiện tại
-        const currentModal = document.getElementById('custom-modal');
-        if (currentModal && currentModal.querySelector('.url-selection-modal')) {
-            showUrlSelectionPopup(taxCode);
-        }
-        
-        // Clear input nếu nó tồn tại
-        if (urlInput) {
-            urlInput.value = '';
-        }
-        
-        showToast('✅ Đã thêm URL cho công ty', 2000, 'success');
-    } else {
-        alert('❌ ' + result.message);
-    }
-}
+
 /**
  * Xóa thẻ khỏi công ty
  */
@@ -4282,74 +2760,5 @@ window.addEventListener('resize', function() {
 window.addEventListener('beforeunload', function() {
     saveData();
 });
-// Thêm CSS cho các element mới
-function addUrlManagerStyles() {
-    const styles = `
-        <style>
-        /* Nút mở profile trong sidebar */
-        .company-profile-action {
-            margin-top: 8px;
-            text-align: center;
-        }
-        
-        .btn-profile-launch {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 15px;
-            font-size: 11px;
-            cursor: pointer;
-            transition: all 0.3s;
-            width: 100%;
-        }
-        
-        .btn-profile-launch:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        }
-        
-        /* Quick URL items */
-        .quick-url-item {
-            transition: background-color 0.2s;
-        }
-        
-        .quick-url-item:hover {
-            background-color: #e3f2fd !important;
-        }
-        </style>
-    `;
-    
-    // Chỉ thêm CSS nếu chưa tồn tại
-    if (!document.getElementById('url-manager-styles')) {
-        const styleElement = document.createElement('style');
-        styleElement.id = 'url-manager-styles';
-        styleElement.innerHTML = styles;
-        document.head.appendChild(styleElement);
-    }
-}
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🔄 Đang khởi động ứng dụng...');
-    
-    // 1. Tải dữ liệu từ LocalStorage
-    loadData();
-    
-    // 2. Thêm CSS
-    addHeaderStyles();
-    addUrlManagerStyles(); // THÊM DÒNG NÀY
-    
-    // 3. Thiết lập chuyển đổi tab
-    setupTabSwitching();
-    
-    // 4. Hiển thị danh sách công ty
-    renderCompanyList();
-    
-    // 5. Khởi tạo mobile sidebar nếu là mobile
-    if (window.innerWidth <= 768) {
-        initMobileSidebar();
-    }
-    
-    
-    // ... rest of existing code ...
-});
+
 console.log('📱 App.js đã được tải - Sẵn sàng với tính năng mobile!');

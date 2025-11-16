@@ -215,53 +215,32 @@ function updateCompanyTags(taxCode) {
     saveData();
 }
 function removeTagFromCompanyInNoteModal(taxCode, tag) {
-    console.log('🗑️ Removing tag from company in note modal:', taxCode, tag);
-    
-    if (window.hkdData[taxCode]) {
-        const company = window.hkdData[taxCode];
+    if (confirm(`Bạn có chắc muốn xóa thẻ "#${tag}" khỏi công ty này?\n\nThao tác này sẽ xóa thẻ khỏi danh sách thẻ đã lưu của công ty.`)) {
+        console.log('🗑️ Removing tag from company in note modal:', taxCode, tag);
         
-        // Xóa khỏi savedTags
-        if (company.savedTags) {
-            company.savedTags = company.savedTags.filter(t => t !== tag);
+        if (window.hkdData[taxCode]) {
+            const company = window.hkdData[taxCode];
+            
+            // Xóa khỏi savedTags
+            if (company.savedTags) {
+                company.savedTags = company.savedTags.filter(t => t !== tag);
+            }
+            
+            // Xóa khỏi selected tags nếu có
+            if (window.selectedNoteTags && window.selectedNoteTags.has(tag)) {
+                window.selectedNoteTags.delete(tag);
+            }
+            
+            saveData();
+            console.log('✅ Tag removed from company in note modal:', tag);
+            
+            // Refresh hiển thị
+            updateCompanySavedTagsDisplay(taxCode);
+            updateSelectedTagsDisplay();
+            updateTagHighlights();
+            
+            showToast(`✅ Đã xóa thẻ "#${tag}" khỏi công ty`, 2000, 'success');
         }
-        
-        // Xóa khỏi tags
-        if (company.tags) {
-            company.tags = company.tags.filter(t => t !== tag);
-        }
-        
-        // Xóa khỏi selected tags nếu có
-        if (window.selectedNoteTags && window.selectedNoteTags.has(tag)) {
-            window.selectedNoteTags.delete(tag);
-        }
-        
-        // Xóa tag khỏi tất cả notes của công ty
-        if (company.notes) {
-            company.notes.forEach(note => {
-                if (note.tags && Array.isArray(note.tags)) {
-                    note.tags = note.tags.filter(t => t !== tag);
-                }
-            });
-        }
-        
-        // Xóa tag khỏi tất cả reminders của công ty
-        if (company.reminders) {
-            company.reminders.forEach(reminder => {
-                if (reminder.tags && Array.isArray(reminder.tags)) {
-                    reminder.tags = reminder.tags.filter(t => t !== tag);
-                }
-            });
-        }
-        
-        saveData();
-        console.log('✅ Tag removed from company in note modal:', tag);
-        
-        // Refresh hiển thị
-        updateCompanySavedTagsDisplay(taxCode);
-        updateSelectedTagsDisplay();
-        updateTagHighlights();
-        
-        showToast(`✅ Đã xóa thẻ "#${tag}" khỏi công ty`, 2000, 'success');
     }
 }
 function showGlobalTagManager() {
@@ -433,11 +412,11 @@ function showQuickNoteModal(taxCode) {
                 </div>
             </div>
             
-            // Trong hàm showQuickNoteModal, sửa phần modal actions:
-<div class="modal-actions" style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #eee; padding-top: 15px;">
-    <button onclick="closeModalWithoutSave()" class="btn-secondary" style="padding: 8px 16px;">❌ Đóng</button>
-    <button onclick="saveQuickNoteWithTags('${taxCode}')" class="btn-success" style="padding: 8px 16px;">💾 Lưu</button>
-</div>
+            <div class="modal-actions" style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #eee; padding-top: 15px;">
+                <button onclick="closeModal()" class="btn-secondary" style="padding: 8px 16px;">❌ Hủy</button>
+                <button onclick="saveQuickNoteWithTags('${taxCode}')" class="btn-success" style="padding: 8px 16px;">💾 Lưu ghi chú & Thẻ</button>
+            </div>
+        </div>
     `;
     
     showModal('Thêm Ghi Chú - Gán Thẻ', modalContent);
@@ -602,15 +581,9 @@ function saveQuickNoteWithTags(taxCode) {
     const content = document.getElementById('quick-note-content')?.value.trim();
     const tags = Array.from(window.selectedNoteTags);
     
-    // CHO PHÉP LƯU CHỈ CÓ THẺ, KHÔNG CẦN GHÍ CHÚ - VÀ CŨNG CHO PHÉP KHÔNG CÓ GÌ
+    // CHO PHÉP LƯU CHỈ CÓ THẺ, KHÔNG CẦN GHÍ CHÚ
     if (!content && tags.length === 0) {
-        // Nếu không có gì để lưu, chỉ đóng modal
-        console.log('📝 No content or tags to save, closing modal');
-        
-        // Reset selected tags
-        window.selectedNoteTags.clear();
-        
-        closeModal();
+        alert('Vui lòng nhập nội dung ghi chú hoặc chọn ít nhất một thẻ');
         return;
     }
     
@@ -687,15 +660,12 @@ function saveQuickNoteWithTags(taxCode) {
     
     console.log('✅ Note/tags saved successfully!');
     
-    // Hiển thị thông báo phù hợp
     if (content && tags.length > 0) {
         showToast('✅ Đã lưu ghi chú và thẻ thành công!', 2000, 'success');
     } else if (content) {
         showToast('✅ Đã lưu ghi chú thành công!', 2000, 'success');
     } else if (tags.length > 0) {
         showToast('✅ Đã lưu thẻ thành công!', 2000, 'success');
-    } else {
-        showToast('✅ Đã đóng popup', 1500, 'info');
     }
 }
 function getAllGlobalTags() {
@@ -950,7 +920,6 @@ function renderGlobalTagsManagement() {
         </div>
     `).join('');
 }
-/*
 function showQuickTagModal(taxCode) {
     console.log('🎪 OPENING TAG MODAL FOR:', taxCode);
     
@@ -1049,7 +1018,6 @@ function showQuickTagModal(taxCode) {
         });
     }
 }
-    */
 function formatCurrency(amount) {
     if (typeof amount !== 'number' || isNaN(amount)) return '0';
     return accountingRound(amount).toLocaleString('vi-VN');
