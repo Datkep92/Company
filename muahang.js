@@ -498,105 +498,11 @@ function addNewProduct(invoiceId) {
     }
 }
 
-function addStatusBadgeStyles() {
-    const styles = `
-        <style>
-        .badge {
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: bold;
-        }
-        
-        .badge-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        
-        .badge-warning {
-            background: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeaa7;
-        }
-        
-        .badge-danger {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        
-        .badge-info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-        
-        .table-success { background-color: #d4edda !important; }
-        .table-warning { background-color: #fff3cd !important; }
-        .table-danger { background-color: #f8d7da !important; }
-        </style>
-    `;
-    
-    document.head.insertAdjacentHTML('beforeend', styles);
-}
-async function processPurchaseInvoices() {
-    const fileInput = document.getElementById('purchase-invoice-files');
-    const files = fileInput.files;
 
-    if (files.length === 0) {
-        alert('Vui lòng chọn file hóa đơn mua hàng.');
-        return;
-    }
 
-    try {
-        console.log('Bắt đầu xử lý files:', files);
-        
-        if (typeof window.handleZipFiles !== 'function') {
-            throw new Error('Hệ thống trích xuất chưa được khởi tạo. Vui lòng tải lại trang.');
-        }
-        
-        // TẠM THỜI VÔ HIỆU HÓA HÀM updateFileStats ĐỂ TRÁNH LỖI
-        const originalUpdateFileStats = window.updateFileStats;
-        window.updateFileStats = function() {
-            console.log('updateFileStats tạm thời bị vô hiệu hóa trong tab Mua Hàng');
-        };
-        
-        const results = await window.handleZipFiles(files);
-        
-        // KHÔI PHỤC HÀM SAU KHI XỬ LÝ
-        window.updateFileStats = originalUpdateFileStats;
-        
-        console.log('Kết quả xử lý:', results);
-        
-        // Cập nhật giao diện
-        loadPurchaseInvoices();
-        loadPayableList();
-        
-        if (typeof window.renderCompanyList === 'function') {
-            window.renderCompanyList();
-        }
-        
-        alert(`Đã xử lý ${results.processedCount} hóa đơn mua hàng thành công!\n- Thành công: ${results.processedCount}\n- Trùng: ${results.duplicateCount}\n- Lỗi: ${results.errorCount}`);
-        
-    } catch (error) {
-        console.error('Lỗi xử lý hóa đơn mua hàng:', error);
-        alert(`Lỗi xử lý hóa đơn: ${error.message}`);
-    }
-}
-function initFileInputListener() {
-    const fileInput = document.getElementById('purchase-invoice-files');
-    if (fileInput) {
-        fileInput.addEventListener('change', function(e) {
-            const files = e.target.files;
-            if (files.length > 0) {
-                console.log(`📁 Đã chọn ${files.length} file`);
-                // Tự động tạo container thống kê nếu chưa có
-                createPurchaseStatsContainer();
-            }
-        });
-    }
-}
+// =======================
+// CẬP NHẬT HÀM INITMUAHANGMODULE - THÊM CSS CHIẾT KHẤU
+// =======================
 function initMuaHangModule() {
     console.log('🔄 Đang khởi tạo module Mua Hàng...');
     
@@ -607,9 +513,6 @@ function initMuaHangModule() {
     addProcessingModalStyles();
     addEditModalStyles();
     
-    // Khởi tạo event listeners
-    initFileInputListener();
-    
     // Lắng nghe sự kiện xử lý hóa đơn mua hàng
     const processButton = document.getElementById('process-purchase-invoices');
     if (processButton) {
@@ -619,11 +522,10 @@ function initMuaHangModule() {
         console.error('❌ Không tìm thấy nút process-purchase-invoices');
     }
 
-    // Tạo container thống kê
-    createPurchaseStatsContainer();
-    
-    // Tải dữ liệu ban đầu
+    // Tải danh sách hóa đơn mua hàng
     loadPurchaseInvoices();
+    
+    // Tải công nợ phải trả
     loadPayableList();
     
     console.log('✅ Module Mua Hàng đã khởi tạo xong');
@@ -961,49 +863,7 @@ function loadPayableList() {
     
     console.log('✅ Đã tải danh sách công nợ');
 }
-function updateStockAfterPurchase(invoice) {
-    if (!window.currentCompany || !window.hkdData) {
-        console.error('❌ Chưa chọn công ty hoặc dữ liệu không tồn tại');
-        return;
-    }
-    
-    const hkd = window.hkdData[window.currentCompany];
-    
-    if (!hkd.tonkhoMain) {
-        hkd.tonkhoMain = [];
-    }
 
-    // Thêm từng sản phẩm vào tồn kho
-    invoice.products.forEach(product => {
-        const existingProduct = hkd.tonkhoMain.find(p => p.msp === product.msp);
-        
-        if (existingProduct) {
-            // Cập nhật số lượng tồn kho
-            existingProduct.quantity = (parseFloat(existingProduct.quantity) || 0) + (parseFloat(product.quantity) || 0);
-            existingProduct.amount = (parseFloat(existingProduct.amount) || 0) + (parseFloat(product.amount) || 0);
-            
-            // Cập nhật giá nhập mới nhất
-            existingProduct.price = product.price;
-        } else {
-            // Thêm sản phẩm mới vào tồn kho
-            hkd.tonkhoMain.push({
-                msp: product.msp,
-                name: product.name,
-                unit: product.unit,
-                quantity: product.quantity,
-                price: product.price,
-                amount: product.amount,
-                source: 'PURCHASE',
-                sourceInvoiceId: invoice.originalFileId,
-                sourceInvoiceNumber: `${invoice.invoiceInfo.symbol}/${invoice.invoiceInfo.number}`,
-                supplier: invoice.sellerInfo.name,
-                importDate: invoice.invoiceInfo.date
-            });
-        }
-    });
-
-    console.log('📦 Đã cập nhật tồn kho sau mua hàng');
-}
 
 
 function createPurchaseReceipt(invoiceId) {
@@ -1590,13 +1450,3 @@ window.removeProduct = removeProduct;
 window.addNewProduct = addNewProduct;
 window.saveInvoiceChanges = saveInvoiceChanges;
 window.calculateTotalPayment = calculateTotalPayment;
-// Export toàn cục các hàm mới
-window.processPurchaseInvoices = processPurchaseInvoices;
-window.updateStockAfterPurchase = updateStockAfterPurchase;
-window.updateStockAfterInvoiceEdit = updateStockAfterInvoiceEdit;
-window.debugCompanyData = debugCompanyData;
-
-// Gọi khởi tạo khi load
-document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(initMuaHangModule, 1000); // Delay để đảm bảo DOM đã sẵn sàng
-});
