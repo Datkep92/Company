@@ -3638,7 +3638,100 @@ function renderFilteredPayableList(suppliers, totalCount = 0, allInvoices = []) 
     
     updatePayableFilterStats(suppliers.length, totalCount);
 }
-
+function updatePayableListHeader() {
+    const payableCard = document.querySelector('#mua-hang .content-body .card:nth-child(3)');
+    if (!payableCard) return;
+    
+    const header = payableCard.querySelector('.card-header');
+    if (!header) return;
+    
+    if (!window.currentCompany || !window.hkdData[window.currentCompany]) {
+        header.innerHTML = `
+            <div class="header-with-stats">
+                <div class="header-title">3. Công Nợ Phải Trả NCC (331)</div>
+                <div class="header-stats">
+                    <span class="stat-badge badge-secondary">0 NCC</span>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    const hkd = window.hkdData[window.currentCompany];
+    let invoices = hkd.invoices || [];
+    
+    if (invoices.length === 0) {
+        header.innerHTML = `
+            <div class="header-with-stats">
+                <div class="header-title">3. Công Nợ Phải Trả NCC (331)</div>
+                <div class="header-stats">
+                    <span class="stat-badge badge-secondary">0 NCC</span>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    // Tính toán (giữ nguyên logic cũ)
+    const state = window.filterState.payable;
+    const supplierDebt = calculateSupplierDebt(invoices);
+    let suppliers = Object.values(supplierDebt);
+    
+    suppliers = filterBySearchTerm(suppliers, state.searchTerm, ['name', 'taxCode']);
+    
+    if (state.debtFilter === 'debt') {
+        suppliers = suppliers.filter(supplier => supplier.remaining > 0);
+    } else if (state.debtFilter === 'paid') {
+        suppliers = suppliers.filter(supplier => supplier.remaining <= 0);
+    }
+    
+    const totalSuppliers = suppliers.length;
+    const totalRemaining = suppliers.reduce((sum, supplier) => sum + supplier.remaining, 0);
+    const debtSuppliers = suppliers.filter(supplier => supplier.remaining > 0).length;
+    
+    // Tạo badge với format mới
+    let badgeClass = 'stat-badge badge-success';
+    let badgeContent = `
+        <span>${totalSuppliers} NCC</span>
+    `;
+    
+    if (totalRemaining > 0) {
+        badgeClass = 'stat-badge badge-warning';
+        badgeContent += `
+            <span>•</span>
+            <span>${window.formatCurrency(totalRemaining)} còn nợ</span>
+        `;
+        if (debtSuppliers > 0) {
+            badgeContent += `
+                <span>•</span>
+                <span>⚠️ ${debtSuppliers} NCC có nợ</span>
+            `;
+        }
+    } else if (totalSuppliers === 0) {
+        badgeClass = 'stat-badge badge-secondary';
+    } else {
+        badgeContent += `
+            <span>•</span>
+            <span>✅ Đã trả hết</span>
+        `;
+    }
+    
+    if (state.searchTerm || state.debtFilter !== 'all') {
+        badgeContent += `
+            <span>•</span>
+            <span>🔍 Đang lọc</span>
+        `;
+    }
+    
+    header.innerHTML = `
+        <div class="header-with-stats">
+            <div class="header-title">3. Công Nợ Phải Trả NCC (331)</div>
+            <div class="header-stats">
+                <span class="${badgeClass}">${badgeContent}</span>
+            </div>
+        </div>
+    `;
+}
 // =======================
 // KHỞI TẠO KHI TẢI TRANG
 // =======================
