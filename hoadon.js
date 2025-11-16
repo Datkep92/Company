@@ -3144,80 +3144,12 @@ function resetInvoiceFilter() {
     loadPurchaseInvoicesWithDefaultSort();
     updateInvoiceStats();
 }
-function loadPurchaseInvoices2() {
-    const invoiceList = document.getElementById('purchase-invoice-list');
-    if (!invoiceList) {
-        console.error('❌ Không tìm thấy danh sách hóa đơn');
-        return;
-    }
-
+function loadPurchaseInvoicesWithDefaultSort() {
     if (!window.currentCompany || !window.hkdData[window.currentCompany]) {
-        invoiceList.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px;">👈 Vui lòng chọn công ty</td></tr>';
+        // 🚨 LOẠI BỎ BÁO LỖI - HIỂN THỊ TẤT CẢ HÓA ĐƠN TỪ TẤT CẢ CÔNG TY
+        displayAllInvoicesFromAllCompanies();
         return;
     }
-
-    const hkd = window.hkdData[window.currentCompany];
-    const invoices = hkd.invoices || [];
-
-    invoiceList.innerHTML = '';
-
-    if (invoices.length === 0) {
-        invoiceList.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px;">📭 Chưa có hóa đơn mua hàng nào</td></tr>';
-        return;
-    }
-
-    // Sắp xếp hóa đơn theo ngày (mới nhất trước)
-    const sortedInvoices = [...invoices].sort((a, b) => 
-        new Date(b.invoiceInfo.date) - new Date(a.invoiceInfo.date)
-    );
-
-    console.log(`📄 Đang tải ${sortedInvoices.length} hóa đơn`);
-
-    sortedInvoices.forEach((invoice, index) => {
-        const row = document.createElement('tr');
-        
-        // Xác định trạng thái
-        let statusBadge = '';
-        let statusClass = '';
-        
-        if (invoice.status && invoice.status.stockPosted) {
-            statusBadge = '<span class="badge badge-success">✅ Đã nhập kho</span>';
-            statusClass = 'table-success';
-        } else if (invoice.status && invoice.status.validation === 'error') {
-            statusBadge = '<span class="badge badge-danger">❌ Lỗi</span>';
-            statusClass = 'table-danger';
-        } else {
-            statusBadge = '<span class="badge badge-warning">⚠️ Chưa xử lý</span>';
-            statusClass = 'table-warning';
-        }
-
-        row.className = statusClass;
-        row.innerHTML = `
-            <td><strong>${invoice.invoiceInfo.symbol}/${invoice.invoiceInfo.number}</strong></td>
-            <td>${window.formatDate(invoice.invoiceInfo.date)}</td>
-            <td>${invoice.sellerInfo.name}</td>
-            <td><code>${invoice.sellerInfo.taxCode}</code></td>
-            <td style="text-align: right;">${window.formatCurrency(invoice.summary.calculatedTotal)}</td>
-            <td style="text-align: right;">${window.formatCurrency(invoice.summary.calculatedTax)}</td>
-            <td>${statusBadge}</td>
-            <td>
-                <div class="button-group-small">
-                    <button class="btn-sm btn-info" onclick="viewPurchaseInvoiceDetail('${invoice.originalFileId}')">👁️ Xem</button>
-                    ${(!invoice.status || !invoice.status.stockPosted) ? 
-                      `<button class="btn-sm btn-primary" onclick="createPurchaseReceipt('${invoice.originalFileId}')">📦 Tạo PN</button>` : 
-                      ''}
-                </div>
-            </td>
-        `;
-        
-        invoiceList.appendChild(row);
-    });
-    
-    console.log('✅ Đã tải danh sách hóa đơn');
-}
-
-function loadPurchaseInvoices() {
-    if (!window.currentCompany || !window.hkdData[window.currentCompany]) return;
     
     const hkd = window.hkdData[window.currentCompany];
     let invoices = hkd.invoices || [];
@@ -3241,6 +3173,143 @@ function loadPurchaseInvoices() {
     renderSimpleFilteredInvoices(invoices);
     updateInvoiceStats();
 }
+
+// =======================
+// HÀM HIỂN THỊ TẤT CẢ HÓA ĐƠN TỪ TẤT CẢ CÔNG TY (THÊM MỚI)
+// =======================
+function displayAllInvoicesFromAllCompanies() {
+    const invoiceList = document.getElementById('purchase-invoice-list');
+    if (!invoiceList) return;
+    
+    // Lấy tất cả hóa đơn từ tất cả công ty
+    let allInvoices = [];
+    Object.keys(window.hkdData || {}).forEach(company => {
+        const companyInvoices = window.hkdData[company].invoices || [];
+        companyInvoices.forEach(invoice => {
+            allInvoices.push({
+                ...invoice,
+                company: company // Thêm thông tin công ty
+            });
+        });
+    });
+    
+    if (allInvoices.length === 0) {
+        invoiceList.innerHTML = '<div class="no-data-message">📭 Chưa có hóa đơn nào</div>';
+        return;
+    }
+    
+    // Sắp xếp: lỗi trên đầu, sau đó theo ngày
+    allInvoices.sort((a, b) => {
+        const aIsError = a.status && a.status.validation === 'error' && !a.status.stockPosted;
+        const bIsError = b.status && b.status.validation === 'error' && !b.status.stockPosted;
+        if (aIsError && !bIsError) return -1;
+        if (!aIsError && bIsError) return 1;
+        return new Date(b.invoiceInfo.date) - new Date(a.invoiceInfo.date);
+    });
+    
+    // Hiển thị
+    renderAllInvoicesFromCompanies(allInvoices);
+}
+
+// =======================
+// RENDER TẤT CẢ HÓA ĐƠN TỪ TẤT CẢ CÔNG TY (THÊM MỚI)
+// =======================
+function renderAllInvoicesFromCompanies(invoices) {
+    const invoiceList = document.getElementById('purchase-invoice-list');
+    if (!invoiceList) return;
+    
+    invoiceList.innerHTML = '';
+    
+    const displayedInvoices = invoices.slice(0, window.invoiceDisplayLimit || 5);
+    
+    // Tạo container
+    const container = document.createElement('div');
+    
+    // Phiên bản desktop (table)
+    const tableContainer = document.createElement('div');
+    tableContainer.className = 'invoice-table-container';
+    
+    const table = document.createElement('table');
+    table.className = 'table-invoice';
+    table.innerHTML = `
+        <thead>
+            <tr>
+                <th>Công ty</th>
+                <th>Số HĐ</th>
+                <th>Ngày</th>
+                <th>Nhà CC</th>
+                <th>MST</th>
+                <th class="text-right">Tổng tiền</th>
+                <th class="text-right">Thuế</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${displayedInvoices.map((invoice, index) => {
+                let statusBadge = '';
+                let statusClass = '';
+                
+                if (invoice.status && invoice.status.stockPosted) {
+                    statusBadge = '<span class="badge badge-success">✅ Đã nhập kho</span>';
+                    statusClass = 'table-success';
+                } else if (invoice.status && invoice.status.validation === 'error') {
+                    statusBadge = '<span class="badge badge-danger">❌ Lỗi</span>';
+                    statusClass = 'table-danger';
+                } else {
+                    statusBadge = '<span class="badge badge-warning">⚠️ Chưa xử lý</span>';
+                    statusClass = 'table-warning';
+                }
+                
+                return `
+                    <tr class="${statusClass}">
+                        <td><strong>${invoice.company}</strong></td>
+                        <td><strong>${invoice.invoiceInfo.symbol}/${invoice.invoiceInfo.number}</strong></td>
+                        <td>${window.formatDate(invoice.invoiceInfo.date)}</td>
+                        <td>${invoice.sellerInfo.name}</td>
+                        <td><code>${invoice.sellerInfo.taxCode}</code></td>
+                        <td class="text-right">${window.formatCurrency(invoice.summary.calculatedTotal)}</td>
+                        <td class="text-right">${window.formatCurrency(invoice.summary.calculatedTax)}</td>
+                        <td>${statusBadge}</td>
+                        <td>
+                            <div class="button-group-small">
+                                <button class="btn-sm btn-info" onclick="viewPurchaseInvoiceDetail('${invoice.originalFileId}')">👁️</button>
+                                <button class="btn-sm btn-warning" onclick="editPurchaseInvoice('${invoice.originalFileId}')">✏️</button>
+                                ${(!invoice.status || !invoice.status.stockPosted) ? 
+                                  `<button class="btn-sm btn-primary" onclick="createPurchaseReceipt('${invoice.originalFileId}')">📦</button>` : 
+                                  ''}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('')}
+        </tbody>
+    `;
+    tableContainer.appendChild(table);
+    container.appendChild(tableContainer);
+    invoiceList.appendChild(container);
+    
+    // Xem thêm button
+    if (invoices.length > displayedInvoices.length) {
+        const loadMoreDiv = document.createElement('div');
+        loadMoreDiv.className = 'load-more-container';
+        loadMoreDiv.innerHTML = `
+            <button onclick="loadMoreAllInvoices()" class="btn btn-outline-primary btn-sm load-more-btn">
+                📋 Xem thêm ${invoices.length - displayedInvoices.length} hóa đơn
+            </button>
+        `;
+        invoiceList.appendChild(loadMoreDiv);
+    }
+}
+
+// =======================
+// XEM THÊM TẤT CẢ HÓA ĐƠN (THÊM MỚI)
+// =======================
+function loadMoreAllInvoices() {
+    window.invoiceDisplayLimit = (window.invoiceDisplayLimit || 5) + 10;
+    displayAllInvoicesFromAllCompanies();
+}
+
 function checkDateInputSupport() {
     const testInput = document.createElement('input');
     testInput.setAttribute('type', 'date');
