@@ -3144,7 +3144,7 @@ function resetInvoiceFilter() {
     loadPurchaseInvoicesWithDefaultSort();
     updateInvoiceStats();
 }
-function loadPurchaseInvoices() {
+function loadPurchaseInvoices2() {
     const invoiceList = document.getElementById('purchase-invoice-list');
     if (!invoiceList) {
         console.error('❌ Không tìm thấy danh sách hóa đơn');
@@ -3216,7 +3216,7 @@ function loadPurchaseInvoices() {
     console.log('✅ Đã tải danh sách hóa đơn');
 }
 
-function loadPurchaseInvoicesWithDefaultSort() {
+function loadPurchaseInvoices() {
     if (!window.currentCompany || !window.hkdData[window.currentCompany]) return;
     
     const hkd = window.hkdData[window.currentCompany];
